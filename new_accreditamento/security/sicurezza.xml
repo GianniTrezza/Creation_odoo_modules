@@ -1,0 +1,31 @@
+<odoo>
+    <record id="group_hospital_accreditation_user" model="res.groups">
+        <field name="name">Hospital Accreditation User</field>
+        <field name="category_id" ref="base.module_category_human_resources_recruitment"/>
+    </record>
+    <record id="hospital_accreditation_decision_wizard_access" model="ir.model.access">
+        <field name="name">hospital.accreditation.decision.wizard.access</field>
+        <field name="model_id" ref="new_accreditamento.model_hospital_accreditation_decision_wizard"/>
+        <field name="group_id" ref="group_hospital_accreditation_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+</odoo>
+<!-- 
+<odoo>
+    <record id="group_hospital_accreditation_user" model="res.groups">
+        <field name="name">Hospital Accreditation User</field>
+        <field name="category_id" ref="base.module_category_human_resources_recruitment"/>
+    </record>
+    <record id="hospital_accreditation_decision_wizard_access" model="ir.model.access">
+        <field name="name">hospital.accreditation.decision.wizard.access</field>
+        <field name="model_id" ref="model_hospital_accreditation_decision_wizard"/>
+        <field name="group_id" ref="group_hospital_accreditation_user"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+</odoo> -->

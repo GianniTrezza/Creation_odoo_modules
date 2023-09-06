@@ -1,0 +1,79 @@
+<odoo>
+    <record id="view_accreditation_form" model="ir.ui.view">
+        <field name="name">hospital.accreditation.form</field>
+        <field name="model">hospital.accreditation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="button_recorded" string="In Compilazione" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'recorded')]}" />
+                    <button name="button_to_be_approved" string="Da Approvare" type="object" class="oe_highlight btn-warning oe_stat_button" states="to_be_approved" attrs="{'invisible': [('state', '!=', 'recorded')]}" />
+                    <button name="button_approve" string="Approvato" type="object" class="oe_highlight btn-success oe_stat_button" states="approved" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}" />
+                    <button name="button_refuse" string="Rifiutato" type="object" class="oe_highlight btn-danger oe_stat_button" states="refused" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}" />
+                    <button name="button_revert_refusal" string="Modifica Stato" type="object" class="oe_highlight" attrs="{'invisible': [('state', 'not in', ['approved', 'refused'])]}" />
+                    <field name="state" widget="statusbar" statusbar_visible="recorded,to_be_approved,approved,refused" />
+                </header>
+                <sheet>
+                    <group>
+                        <field name="codice_pratica"/>
+                        <field name="autore_registrazione"/>
+                        <field name="tipologia_pratica_id"/>
+                        <field name="richiedente_id"/>
+                        <field name="struttura_da_accreditare_id"/>
+                        <field name="descrizione"/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_accreditation_tree" model="ir.ui.view">
+        <field name="name">hospital.accreditation.tree</field>
+        <field name="model">hospital.accreditation</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="codice_pratica"/>
+                <field name="autore_registrazione"/>
+                <field name="tipologia_pratica_id"/>
+                <field name="richiedente_id"/>
+                <field name="struttura_da_accreditare_id"/>
+                <field name="state" decoration-info="state == 'recorded'" 
+                                decoration-warning="state == 'to_be_approved'" 
+                                decoration-success="state == 'approved'" 
+                                decoration-danger="state == 'refused'"/>
+            </tree>
+        </field>
+    </record>
+
+
+    
+
+    <record id="view_accreditation_decision_form" model="ir.ui.view">
+        <field name="name">hospital.accreditation.decision.form</field>
+        <field name="model">hospital.accreditation.decision.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="decision"/>
+                </group>
+                <footer>
+                    <button string="Confirm" type="object" class="btn-primary" name="action_confirm"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="action_accreditation_decision_wizard" model="ir.actions.act_window">
+        <field name="name">Decide on Accreditation</field>
+        <field name="res_model">hospital.accreditation.decision.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_accreditation_decision_form"/>
+        <field name="target">new</field>
+    </record>
+
+</odoo>
