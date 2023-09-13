@@ -1,5 +1,4 @@
 from odoo import models, api, fields, _
-from odoo.exceptions import UserError
 
 class ResPartner(models.Model):
     _inherit = "res.partner"
@@ -10,106 +9,93 @@ class ResPartner(models.Model):
 class HospitalAccreditation(models.Model):
     _name = 'hospital.accreditation'
     _description = 'Accreditamento delle Strutture Sanitarie'
-    _inherit = ['mail.thread', 'mail.activity.mixin'] #Aggiunta per gestire solo la tracciabilità al cambio di stato#Aggiunte nel relative xml accreditation.xml
-    _order = "create_date desc" #Le fatture sono disposte temporalmente parlando con codice crescente in alto, con codice decrescente in basso
-
-
+    _inherit = ['mail.thread', 'mail.activity.mixin'] 
+    _order = "create_date desc"
 
     def _get_default_user(self):
         return self.env.user.id
-
-    codice_pratica = fields.Char(string='Codice Pratica', readonly=True, copy=False, default=lambda self: _('New'))
-    autore_registrazione = fields.Many2one('res.users', string='Autore Registrazione', default=_get_default_user, readonly=True)
-    tipologia_pratica_id = fields.Many2one('hospital.tipologia_pratica', string='Tipologia Pratica', required=True)
-    richiedente_id = fields.Many2one('res.partner', string='Richiedente', domain=[('is_company', '=', False)])
-    struttura_da_accreditare_id = fields.Many2one('res.partner', string='Struttura da Accreditare', domain=[('is_company', '=', True), ('is_struttura_sanitaria', '=', True)], required=True)
     
+    name = fields.Char(string='Name', required=True, copy=False)
+    codice_pratica = fields.Char(string='Codice Pratica', readonly=True, copy=False, default=lambda self: _('Nuova pratica'))
+    autore_reg_id = fields.Many2one('res.users', string='Autore Registrazione', default=_get_default_user, readonly=True)
+    tipologia_pratica_id = fields.Many2one('hospital.tipologia_pratica', string='Tipologia Pratica', required=True)
+    richiedente_id = fields.Many2one('res.partner', string='Richiedente', domain=[('is_company', '=', False), ('is_struttura_sanitaria', '=', False)], required=True)
+    struttura_da_accreditare_id = fields.Many2one('res.partner', string='Struttura da Accreditare', domain=[('is_company', '=', True), ('is_struttura_sanitaria', '=', True), ('e_accreditata', '=', False)], required=True)
+
     descrizione = fields.Html(string='Descrizione')
     state = fields.Selection([
-        ('recorded', 'In compilazione'),
-        ('to_be_approved', 'Da approvare'),
+        ('draft', 'In Compilazione'),
+        ('in_progress', 'In Progress'),
+        ('to_be_approved', 'Da Approvare'),
         ('approved', 'Approvato'),
         ('refused', 'Rifiutato'),
-        ('reverted', 'Modifica Stato'),
-    ], string='Stato', default='recorded', readonly=True, track_visibility='onchange')
+    ], default='draft', readonly= True, track_visibility='onchange')
+    Incremento = fields.Integer('Incremento', default=1)
+    year_from_code = fields.Char(string='Anno dal codice pratica', compute='_compute_year_from_code', store=True)
 
-    
+    @api.depends('codice_pratica')
+    def _compute_year_from_code(self):
+        for rec in self:
+            if rec.codice_pratica and '/' in rec.codice_pratica:
+                rec.year_from_code = rec.codice_pratica.split('/')[1]
+            else:
+                rec.year_from_code = False
+
+
     @api.model
     def create(self, vals):
-        if not vals.get('codice_pratica'):
-            sequence_value = self.env['ir.sequence'].next_by_code('hospital.accreditation.sequence') or _('New')
-            vals['codice_pratica'] = sequence_value
+        if not vals.get('Incremento'):
+            max_incremento = self.search([], order="Incremento desc", limit=1)
+            new_incremento = max_incremento.Incremento + 1 if max_incremento else 1
+            vals['Incremento'] = new_incremento
+
+        nome_formattato = f'ACCR/{fields.Date.today().year}/{str(vals["Incremento"]).zfill(5)}'
+        vals['name'] = nome_formattato
+        vals['codice_pratica'] = nome_formattato
+
         return super(HospitalAccreditation, self).create(vals)
-#Ho eliminato il metodo write dal momento che la generazione dell'ACCR/%(year)s/ è già gestita dall'xml dati_sequenza.xml, in termini anche
-#anche di number_increment
-
-    # def write(self, vals):
-    #     for record in self:
-    #         if record.state in ['approved', 'refused', 'reverted'] and not record.codice_pratica:
-    #             sequence_value = self.env['ir.sequence'].next_by_code('hospital.accreditation.sequence') or _('New')
-    #             vals['codice_pratica'] = sequence_value
-    #     return super(HospitalAccreditation, self).write(vals)
-    
-
-    def button_recorded(self):
-        for record in self:
-            record.state = "recorded"
-        return True
-    
-    def button_to_be_approved(self):
-        return {
-            'name': _('Decide on Accreditation'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'hospital.accreditation.decision.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'active_id': self.id}
-        }
-
-    def button_approve(self):
-        for record in self:
-            record.state = 'approved'
-            record.struttura_da_accreditare_id.e_accreditata = False
-        return {
-                'type': 'ir.actions.act_window',
-                'name': 'Pratiche',
-                'res_model': 'hospital.accreditation',
-                'view_mode': 'tree,form',
-                'target': 'current',
-        }
-
-    def button_refuse(self):
-        for record in self:
-            record.state = 'refused'
-            record.struttura_da_accreditare_id.e_accreditata = False
+    def action_recorded(self):
+        self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Pratiche',
             'res_model': 'hospital.accreditation',
-            'view_mode': 'tree,form',
-            'target': 'current',
+            'view_mode': 'form',
+            'view_id': self.env.ref('new_accreditamento.view_accreditation_form').id,
+
+            'res_id': self.id,
         }
-    def button_revert_refusal(self):
-        for record in self:
-            if record.state == 'refused':
-                record.state = 'approved'
-            elif record.state == 'approved':
-                record.state = 'refused'
+
+    def action_to_be_approved(self):
+        self.write({'state': 'to_be_approved'})
         return True
+    
+    def action_approve(self):
+        self.write({'state': 'approved'})
+        for record in self:
+            if record.struttura_da_accreditare_id:
+                record.struttura_da_accreditare_id.write({
+                    'e_accreditata': True 
+                })
+        return self.env.ref('new_accreditamento.action_accreditation').read()[0]
+    def action_refuse(self):
+        self.write({'state': 'refused'})
+        for record in self:
+            if record.struttura_da_accreditare_id:
+                record.struttura_da_accreditare_id.write({
+                    'e_accreditata': False
+                })
+        return self.env.ref('new_accreditamento.action_accreditation').read()[0]
+
+    def action_forward(self):
+        self.write({'state': 'in_progress'})
+        return True
+    
+    def action_backward(self):
+        self.write({'state': ['draft', 'in_progress', 'to_be_approved', 'approved', 'refused']})
+        return True
+    
 
 
-class HospitalAccreditationDecisionWizard(models.TransientModel):
-    _name = "hospital.accreditation.decision.wizard"
-    _description = "Decide on Hospital Accreditation"
 
-    decision = fields.Selection([
-        ('approved', 'Approva'),
-        ('refused', 'Rifiuta'),
-    ], string='Decision', required=True)
 
-    def action_confirm(self):
-        active_id = self.env.context.get('active_id')
-        record = self.env['hospital.accreditation'].browse(active_id)
-        record.state = self.decision
-        if self.decision == 'approved':
-            record.struttura_da_accreditare_id.e_accreditata = True
+

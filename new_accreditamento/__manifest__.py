@@ -6,7 +6,6 @@
     'website': 'www.odoo_accreditamento.tech',
     'summary': 'Processo accreditamento (Strutture Sanitarie)', 
     'data': [
-        'data/dati_sequenza.xml',
         'security/ir.model.access.csv',
         'security/sicurezza.xml',
         'views/accreditation.xml',

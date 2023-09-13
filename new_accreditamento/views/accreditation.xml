@@ -4,22 +4,28 @@
         <field name="model">hospital.accreditation</field>
         <field name="arch" type="xml">
             <form>
+                <label for="codice_pratica" class="oe_edit_only"/>
+                <h1><field name="codice_pratica" class="oe_inline"/></h1>
                 <header>
-                    <button name="button_recorded" string="In Compilazione" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'recorded')]}" />
-                    <button name="button_to_be_approved" string="Da Approvare" type="object" class="oe_highlight btn-warning oe_stat_button" states="to_be_approved" attrs="{'invisible': [('state', '!=', 'recorded')]}" />
-                    <button name="button_approve" string="Approvato" type="object" class="oe_highlight btn-success oe_stat_button" states="approved" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}" />
-                    <button name="button_refuse" string="Rifiutato" type="object" class="oe_highlight btn-danger oe_stat_button" states="refused" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}" />
-                    <button name="button_revert_refusal" string="Modifica Stato" type="object" class="oe_highlight" attrs="{'invisible': [('state', 'not in', ['approved', 'refused'])]}" />
-                    <field name="state" widget="statusbar" statusbar_visible="recorded,to_be_approved,approved,refused" />
+                    <button string="Avanti" type="object" name="action_forward" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button string="Indietro" type="object" name="action_backward" attrs="{'invisible': [('state', '!=', 'in_progress')]}"/>
+                    <button string="Da Approvare" type="object" name="action_to_be_approved" class="oe_highlight btn-warning oe_stat_button" attrs="{'invisible': [('state', '!=', 'in_progress')]}"/>
+                    <button string="Approva" type="object" name="action_approve" class="oe_highlight btn-success oe_stat_button" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}"  confirm="Sei proprio sicuro di voler approvare questa pratica?" />
+                    <button string="Rifiuta" type="object" name="action_refuse" class="oe_highlight btn-danger oe_stat_button" attrs="{'invisible': [('state', '!=', 'to_be_approved')]}"  confirm="Sei proprio sicuro di voler rifiutare questa pratica?" />
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft, to_be_approved, approved, refused" />
                 </header>
                 <sheet>
+                    <field name="state" invisible="1"/>
                     <group>
-                        <field name="codice_pratica"/>
-                        <field name="autore_registrazione"/>
-                        <field name="tipologia_pratica_id"/>
-                        <field name="richiedente_id"/>
-                        <field name="struttura_da_accreditare_id"/>
-                        <field name="descrizione"/>
+                        <group>
+                            <field name="name" invisible="1"/>
+                            <field name="autore_reg_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="tipologia_pratica_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="richiedente_id" context="{'default_is_company': False, 'default_is_struttura_sanitaria': False}" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="struttura_da_accreditare_id" context="{'default_is_company': True, 'default_is_struttura_sanitaria': True}" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="descrizione" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                        </group>
                     </group>
                 </sheet>
                 <div class="oe_chatter">
@@ -34,46 +40,31 @@
         <field name="name">hospital.accreditation.tree</field>
         <field name="model">hospital.accreditation</field>
         <field name="arch" type="xml">
-            <tree>
-                <field name="codice_pratica"/>
-                <field name="autore_registrazione"/>
+            <tree decoration-info="state=='draft'" 
+                decoration-muted="state=='in_progress'" 
+                decoration-warning="state=='to_be_approved'" 
+                decoration-success="state=='approved'"
+                decoration-danger="state=='refused'">
+                <field name="name" invisible="1"/>
+                <field name="codice_pratica" attrs="{'readonly': [('state', '!=', 'recorded')]}"/>
+                <field name="autore_reg_id"/>
                 <field name="tipologia_pratica_id"/>
-                <field name="richiedente_id"/>
-                <field name="struttura_da_accreditare_id"/>
-                <field name="state" decoration-info="state == 'recorded'" 
-                                decoration-warning="state == 'to_be_approved'" 
-                                decoration-success="state == 'approved'" 
-                                decoration-danger="state == 'refused'"/>
+                <field name="richiedente_id" context="{'default_is_company': False, 'default_is_struttura_sanitaria': False}" />
+                <field name="struttura_da_accreditare_id" context="{'default_is_company': True, 'default_is_struttura_sanitaria': True}"/>
+                <field name="state"/>
             </tree>
         </field>
     </record>
-
-
     
-
-    <record id="view_accreditation_decision_form" model="ir.ui.view">
-        <field name="name">hospital.accreditation.decision.form</field>
-        <field name="model">hospital.accreditation.decision.wizard</field>
-        <field name="arch" type="xml">
-            <form>
-                <group>
-                    <field name="decision"/>
-                </group>
-                <footer>
-                    <button string="Confirm" type="object" class="btn-primary" name="action_confirm"/>
-                    <button string="Cancel" class="btn-secondary" special="cancel"/>
-                </footer>
-            </form>
-        </field>
+    <record id="action_accreditation" model="ir.actions.act_window">
+        <field name="name">Accreditamenti Strutture Sanitarie</field>
+        <field name="res_model">hospital.accreditation</field>
+        <field name="view_mode">tree,form</field>
+        <field name="target">main</field>
+        <field name="context">{'search_default_state': 'draft'}</field>
     </record>
 
-
-    <record id="action_accreditation_decision_wizard" model="ir.actions.act_window">
-        <field name="name">Decide on Accreditation</field>
-        <field name="res_model">hospital.accreditation.decision.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="view_id" ref="view_accreditation_decision_form"/>
-        <field name="target">new</field>
-    </record>
-
+    <menuitem id="menu_accreditation" name="Accreditamenti" parent="base.menu_administration" sequence="10" action="action_accreditation"/>
 </odoo>
+
+
