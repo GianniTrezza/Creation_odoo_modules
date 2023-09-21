@@ -5,7 +5,7 @@
         <field name="arch" type="xml">
             <tree>
                 <field name="name"/>
-                <field name="is_struttura_sanitaria" attrs="{'invisible': [('is_company', '=', False), ], 'readonly': [('is_company', '=', False)]}"/>
+                <field name="is_struttura_sanitaria"/>
                 <field name="e_accreditata"/>
                 <field name="is_company"/>
             </tree>
@@ -20,7 +20,7 @@
             <xpath expr="//page[@name='sales_purchases']" position="after">
                 <page string="Informazioni aggiuntive" attrs="{'invisible': [('is_company', '=', False)]}">
                     <group>
-                        <field name="is_struttura_sanitaria"/>
+                        <field name="is_struttura_sanitaria" />
                         <field name="e_accreditata"/>
                     </group>
                 </page>
@@ -39,4 +39,7 @@
         </field>
     </record>
 </odoo>
+
+
+
 

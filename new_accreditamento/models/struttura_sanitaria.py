@@ -7,3 +7,5 @@ class StrutturaSanitaria(models.Model):
     is_struttura_sanitaria = fields.Boolean('È una struttura sanitaria', default=True)
     e_accreditata = fields.Boolean('Accreditata', default=False)
 
+
+
