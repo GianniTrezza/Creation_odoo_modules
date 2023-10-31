@@ -11,7 +11,7 @@
     'company': 'InTechual Solutions',
     'maintainer': 'InTechual Solutions',
     'website': 'https://intechualsolutions.com',
-    'depends': ['base', 'base_setup', 'mail'],
+    'depends': ['base', 'base_setup', 'base_import','mail', 'account' ],
     'data': [
         'data/chatgpt_model_data.xml',
         'data/mail_channel_data.xml',
