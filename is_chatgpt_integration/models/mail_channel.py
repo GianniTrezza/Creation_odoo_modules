@@ -577,7 +577,6 @@ class Andamenti:
                                          "Importo dovuto", "Stato e-fattura", "Stato"])
         self._prepare_data()
         self.chunks = self._organize_chunks_by_year()
-
     def _prepare_data(self):
         self.tabella['Data fattura'] = pd.to_datetime(self.tabella['Data fattura'])
         self.tabella['Mese'] = self.tabella['Data fattura'].dt.month
@@ -610,7 +609,6 @@ class Andamenti:
             monthly_totals.append(total_for_month)
         
         return monthly_totals
-
 class ChatHistory(models.Model):
     _name = 'chat.history'
     channel_id = fields.Many2one('mail.channel', required=True, ondelete='cascade')
@@ -640,47 +638,37 @@ class Channel(models.Model):
     def button_import_csv(self):
         if not self.csv_file_data:
             raise UserError(_("Per favore carica un file CSV prima di procedere."))
-    # Rettifica: FINE
-        file_data = base64.b64decode(self.data_file)
+        file_data = base64.b64decode(self.csv_file_data)
         file_input = StringIO(file_data.decode('utf-8'))
         csv_file = list(csv.reader(file_input, delimiter=',', lineterminator='\n'))
 
-        client_ids = self._generate_client_ids(csv_file[1:])
-        salesperson_ids = self._generate_salesperson_ids(csv_file[1:])
-        # status_ids= self._check_state_conditions(csv_file[1:])
+        columns_mapping = {
+            'Codice Fattura (Numero)': 'name',
+            'Cliente': 'invoice_partner_display_name',
+            'Data fattura': 'invoice_date',
+            'Data scadenza': 'invoice_date_due',
+            'No records': 'activity_ids',
+            'Imponibile': 'amount_untaxed_signed',
+            'Totale': 'amount_total_signed',
+            'Importo dovuto': 'amount_residual_signed',
+            'Stato –e fattura': 'payment_state',
+            'Addetto vendite': 'user_id',
+        }
 
-        for row in csv_file[0:]:
-            salesperson_id = salesperson_ids.get(row[3].strip())
-            # mapped_state = self._map_state_from_csv(row[11].strip())
-            # print(f"CSV State: {row[11].strip()}, Mapped State: {mapped_state}")
-
-            values = {
-                'addetto_vendite': salesperson_id,
-                'documento_origine': row[5],
-                'partner_id': client_ids[row[0]],
-                'invoice_date': convert_date_format(row[1]),
-                'name': row[2],
-                'invoice_date_due': convert_date_format(row[4]),
-                'insoluta': True if row[6] == 'Insoluta' else False,
-                'amount_untaxed': float(row[7]) if row[7] else 0.0,
-                'amount_tax': float(row[8]) if row[8] else 0.0,
-                'amount_total': float(row[9]) if row[9] else 0.0,
-                'residual': float(row[10]) if row[10] else 0.0,
-                'state': self._map_state_from_csv(row[11])
-            }
-            self.env['account.move'].create(values)
-    
-        
+        headers = csv_file[0]
+        for row in csv_file[1:]:
+            values = {}
+            for header, value in zip(headers, row):
+                odoo_col = columns_mapping.get(header)
+                if odoo_col:
+                    values[odoo_col] = value
+            self.env['account.move'].create(values) 
     def estrai_nome_cliente_da_prompt(self, prompt):
         andamenti_obj = Andamenti(r"C:\Users\giova\OneDrive\Desktop\tabella_fatture.csv")
         index = prompt.lower().find("cliente")
         if index == -1:
-            return None  # Non ha trovato la parola "cliente" nel prompt
-        
-        # Estrae il nome del cliente dal prompt
+            return None  
         cliente_part = prompt[index + len("cliente"):].strip()
-        
-        # Verifica se il nome del cliente è nel dataset
         if cliente_part in andamenti_obj.data["Cliente"].values:
             return cliente_part
         else:
@@ -726,14 +714,28 @@ class Channel(models.Model):
 
         return rdata
     def _get_last_invoice(self):
-        # Recupera tutti i record dalla tabella_fatture
-        fatture_records = self.env['tabella_fatture'].search([], order='data DESC', limit=1)  # Supponendo che 'data' sia il campo su cui vuoi ordinare
+        fatture_records = self.env['tabella_fatture'].search([], order='data DESC', limit=1)
 
-        # Se esistono record, restituisci il primo (che dovrebbe essere l'ultimo basandosi sull'ordinamento)
         if fatture_records:
             return fatture_records[0]
         else:
             raise UserError("Nessuna fattura trovata.")
+# ************************************NUOVE FUNZIONI PER I NEW PROMPTS A CUI SOTTOPORRE CHATGPT4: INIZIO*********************************************************
+    def _get_fatture_insolute_per_cliente(self, nome_cliente):
+        fatture = self.env['account.move'].search([('partner_id.name', '=', nome_cliente), ('insoluta', '=', True)])
+        if not fatture:
+            return "Nessuna fattura insoluta trovata per il cliente."
+        fatture_insolute = "\n".join([f"{fattura.name}: {fattura.amount_total} euro" for fattura in fatture])
+        return fatture_insolute
+
+    def _get_totale_fatture_per_cliente(self, nome_cliente):
+        fatture = self.env['account.move'].search([('partner_id.name', '=', nome_cliente)])
+        if not fatture:
+            return "Nessuna fattura trovata per il cliente."
+        totale = sum(fattura.amount_total for fattura in fatture)
+        return totale
+# ************************************NUOVE FUNZIONI PER I NEW PROMPTS A CUI SOTTOPORRE CHATGPT4: FINE*********************************************************
+
     
 
     @api.model
@@ -756,6 +758,8 @@ class Channel(models.Model):
                     return "Non ho capito il nome del cliente."
             else:
                 return "Non ho capito la tua richiesta sull'affidabilità."
+        
+
 
         
         ICP = self.env['ir.config_parameter'].sudo()
@@ -763,28 +767,35 @@ class Channel(models.Model):
         gpt_model_id = ICP.get_param('is_chatgpt_integration.chatgpt_model')
         gpt_model = 'gpt-4-32k-0613'
 
-        # Estraiamo le fatture se il prompt dell'utente le menziona
         if "fatture" in prompt.lower():
             fatture_records = self.env['account.move'].search([])
             fatture_data = "\n".join([f"{rec.name}: {rec.invoice_date}" for rec in fatture_records])
             prompt += f"\n\nDati Fatture:\n{fatture_data}"
 
-        # Qui, possiamo aggiungere ulteriori condizioni basate su ciò che intendiamo per "decodificare".
-        # Ad esempio, potremmo avere condizioni che riconoscono determinate parole chiave e modellano la risposta in base a quelle.
         if "quante fatture" in prompt.lower():
             num_fatture = len(fatture_records)
             return f"Ci sono {num_fatture} fatture nella tabella."
 
-        # Potremmo anche riconoscere domande specifiche sulle date o altri dettagli delle fatture
         if "ultima fattura" in prompt:
             last_invoice = self._get_last_invoice()
             return f"L'ultima fattura è la name {last_invoice.name} del {last_invoice.invoice_date}."
-        # OPPURE: posso anche provare a non utilizzare la funzione get_last_invoice()
-        # if "ultima fattura" in prompt.lower():
-        #     latest_invoice = fatture_records[-1]
-        #     return f"L'ultima fattura è la name {latest_invoice.name} del {latest_invoice.invoice_date}."
+# ************************************NEW PROMPTS A CUI SOTTOPORRE CHATGPT4:INIZIO*********************************************************
+        if "fatture insolute per un cliente" in prompt.lower():
+            nome_cliente = self.estrai_nome_cliente_da_prompt(prompt)
+            if nome_cliente:
+                fatture_insolute = self._get_fatture_insolute_per_cliente(nome_cliente)
+                return f"Le fatture insolute per il cliente {nome_cliente} sono:\n{fatture_insolute}"
+            else:
+                return "Non ho capito il nome del cliente."
 
-        # Dopo aver controllato le condizioni specifiche, procediamo con il normale flusso di risposta di gpt-4-32k-0613
+        if "totale delle fatture per un cliente" in prompt.lower():
+            nome_cliente = self.estrai_nome_cliente_da_prompt(prompt)
+            if nome_cliente:
+                totale_fatture = self._get_totale_fatture_per_cliente(nome_cliente)
+                return f"Il totale delle fatture per il cliente {nome_cliente} è {totale_fatture} euro."
+            else:
+                return "Non ho capito il nome del cliente."
+# ************************************NEW PROMPTS A CUI SOTTOPORRE CHATGPT4: FINE*********************************************************
         try:
             if gpt_model_id:
                 gpt_model = self.env['chatgpt.model'].browse(int(gpt_model_id)).name
@@ -811,8 +822,76 @@ class Channel(models.Model):
             res = response['choices'][0]['message']['content']
             return res
         except openai.error.OpenAIError as e:
-        # Gestione dell'errore qui
             if "maximum context length" in str(e):
                 raise UserError(_("The input is too long. Please reduce the size and try again."))
             else:
                 raise UserError(_(e))
+#***************************************IDEE SU COME RENDERE LA CONVERSAZIONE FLUIDA NELL'INTERFACCIA TRA CHATGPT E USER**************
+    
+    # def __init__(self, path):
+    #     self.tabella = pd.read_csv(path)
+
+#     def unpaid_invoices_for_client(self, client_name):
+#         unpaid = self.tabella[(self.tabella['Cliente'] == client_name) & (self.tabella['Insoluta'] == True)]
+#         if unpaid.empty:
+#             return f"Nessuna fattura insoluta trovata per {client_name}."
+#         else:
+#             return f"Fatture insolute per {client_name}: \n{unpaid}"
+
+#     def total_invoice_amount_for_client(self, client_name):
+#         total = self.tabella[self.tabella['Cliente'] == client_name]['Totale'].sum()
+#         return f"Totale delle fatture per {client_name}: {total}€."
+
+#     def invoice_status_for_client(self, client_name):
+#         statuses = self.tabella[self.tabella['Cliente'] == client_name]['Stato'].to_list()
+#         return f"Stati delle fatture per {client_name}: {', '.join(statuses)}."
+
+#     def client_with_most_unpaid_invoices(self):
+#         client = self.tabella[self.tabella['Insoluta'] == True]['Cliente'].value_counts().idxmax()
+#         return f"Il cliente con il maggior numero di fatture insolute è: {client}."
+
+#     def highest_invoice_in_period(self, start_date, end_date):
+#         period_data = self.tabella[(self.tabella['Data fattura'] >= start_date) & (self.tabella['Data fattura'] <= end_date)]
+#         if period_data.empty:
+#             return f"Nessuna fattura trovata tra {start_date} e {end_date}."
+#         max_invoice = period_data[period_data['Totale'] == period_data['Totale'].max()]
+#         return f"La fattura con l'importo più alto tra {start_date} e {end_date} è: \n{max_invoice}"
+
+# def conversazione():
+#     path = input("Inserisci il percorso del file CSV delle fatture: ")
+#     andamenti = Andamenti(path)
+    
+#     while True:
+#         print("\nCosa desideri sapere? Ecco alcune opzioni:")
+#         print("1. Fatture insolute per un cliente.")
+#         print("2. Totale delle fatture per un cliente.")
+#         print("3. Stato delle fatture per un cliente.")
+#         print("4. Cliente con il maggior numero di fatture insolute.")
+#         print("5. Fattura con l'importo più alto in un periodo.")
+#         print("6. Esci.")
+        
+#         scelta = input("Fai la tua scelta (1-6): ")
+
+#         if scelta == "1":
+#             nome = input("Inserisci il nome del cliente: ")
+#             print(andamenti.unpaid_invoices_for_client(nome))
+#         elif scelta == "2":
+#             nome = input("Inserisci il nome del cliente: ")
+#             print(andamenti.total_invoice_amount_for_client(nome))
+#         elif scelta == "3":
+#             nome = input("Inserisci il nome del cliente: ")
+#             print(andamenti.invoice_status_for_client(nome))
+#         elif scelta == "4":
+#             print(andamenti.client_with_most_unpaid_invoices())
+#         elif scelta == "5":
+#             inizio = input("Inserisci la data di inizio (formato GG/MM/AAAA): ")
+#             fine = input("Inserisci la data di fine (formato GG/MM/AAAA): ")
+#             print(andamenti.highest_invoice_in_period(inizio, fine))
+#         elif scelta == "6":
+#             print("Grazie per aver utilizzato il sistema di fatturazione! A presto.")
+#             break
+#         else:
+#             print("Scelta non valida. Riprova.")
+
+# conversazione()
+

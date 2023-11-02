@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 
 
-
 class File_Reader:
 
     def __init__(self):
@@ -32,19 +31,21 @@ def convert_date_format(original_date):
         raise ValueError(f"Invalid date format: {original_date}")
     return formatted_date
 
+
 class ClientMappingLogger:
     LOG_PATH = 'C:\\Users\\giova\\odoo\\addons\\is_chatgpt_integration\\logs\\client_mapping.log'
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     f_handler = logging.FileHandler(LOG_PATH, mode='a')
-    formatter = logging.Formatter("%(asctime)s - %(message)s") 
+    formatter = logging.Formatter("%(asctime)s - %(message)s")
     f_handler.setFormatter(formatter)
     logger.addHandler(f_handler)
 
     @staticmethod
     def get_logger():
         return ClientMappingLogger.logger
+
 
 class TabellaFatture(models.Model):
     _inherit = 'account.move'
@@ -68,7 +69,7 @@ class TabellaFatture(models.Model):
         return client_mapping
 
     def _generate_salesperson_ids(self, csv_data):
-        salespeople = set(row[3] for row in csv_data)
+        salespeople = set(row[9] for row in csv_data)
         return {salesperson: f"addetto_{i}" for i, salesperson in enumerate(salespeople, 1)}
 
     def _map_state_from_csv(self, csv_state):
@@ -85,25 +86,41 @@ class TabellaFatture(models.Model):
         file_input = StringIO(file_data.decode('utf-8'))
         csv_file = list(csv.reader(file_input, delimiter=',', lineterminator='\n'))
 
+        columns_mapping = {
+            'Codice Fattura (Numero)': 'name',
+            'Cliente': 'invoice_partner_display_name',
+            'Data fattura': 'invoice_date',
+            'Data scadenza': 'invoice_date_due',
+            'No records': 'activity_ids',
+            'Imponibile': 'amount_untaxed_signed',
+            'Totale': 'amount_total_signed',
+            'Importo dovuto': 'amount_total_in_currency_signed',
+            'Stato –e fattura': 'payment_status',
+            'Addetto vendite': 'partner_id',
+        }
+
         client_ids = self._generate_client_ids(csv_file[1:])
         salesperson_ids = self._generate_salesperson_ids(csv_file[1:])
 
-        for row in csv_file[0:]:
-            salesperson_id = salesperson_ids.get(row[3].strip())
+        headers = csv_file[0]
 
-            values = {
-                'addetto_vendite': salesperson_id,
-                'documento_origine': row[5],
-                'partner_id': client_ids[row[0]],
-                'invoice_date': convert_date_format(row[1]),
-                'name': row[2],
-                'invoice_date_due': convert_date_format(row[4]),
-                
-                'amount_untaxed': float(row[7]) if row[7] else 0.0,
-                'amount_tax': float(row[8]) if row[8] else 0.0,
-                'amount_total': float(row[9]) if row[9] else 0.0,
-                'residual': float(row[10]) if row[10] else 0.0,
-                'state': self._map_state_from_csv(row[11]),
-                # altri campi che desideri impostare
-            }
+        for row in csv_file[1:]:
+            values = {}
+            for header, value in zip(headers, row):
+                field_name = columns_mapping.get(header)
+                if field_name:
+                    if field_name == 'invoice_date' or field_name == 'invoice_date_due':
+                        values[field_name] = convert_date_format(value)
+                    elif field_name == 'amount_untaxed_signed' or field_name == 'amount_total_signed' or field_name == 'amount_total_in_currency_signed':
+                        values[field_name] = float(value) if value else 0.0
+                    elif field_name == 'partner_id':
+                        values[field_name] = client_ids[value]
+                    elif field_name == 'addetto_vendite':
+                        values[field_name] = salesperson_ids[value]
+                    elif field_name == 'payment_status':
+                        values[field_name] = self._map_state_from_csv(value)
+                    else:
+                        values[field_name] = value
+
             self.env['account.move'].create(values)
+        
