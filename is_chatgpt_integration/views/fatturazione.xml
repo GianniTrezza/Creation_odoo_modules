@@ -60,17 +60,7 @@
         </field>
     </record>
 
-    <record id="action_fatturazione" model="ir.actions.act_window">
-        <field name="name">Fatture</field>
-        <field name="res_model">account.move</field>
-        <field name="view_mode">tree,form</field>
-        <field name="view_id" ref="view_account_move_tree"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_empty_folder">
-                Non esistono ancora fatture: importale
-            </p>
-        </field>
-    </record>
+    
     <record id="action_import_fatture_wizard" model="ir.actions.act_window">
         <field name="name">Importa Fatture</field>
         <field name="res_model">account.move</field>
@@ -80,8 +70,7 @@
     </record>
 
 
-    <menuitem id="menu_accounting" name="Contabilità" action="account.action_account_moves_all" sequence="1"/>
-    <menuitem id="menu_fatturazione_fatture" name="Fatture" parent="account.menu_finance" action="action_fatturazione" sequence="5"/>
+    
     <menuitem id="menu_import_fatture" name="Importa Fatture" parent="account.menu_finance" action="action_import_fatture_wizard" sequence="30"/>  
 </odoo>
 
