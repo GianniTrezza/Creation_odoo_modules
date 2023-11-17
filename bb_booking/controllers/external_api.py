@@ -6,6 +6,7 @@ from odoo.http import request, Response
 import json
 import datetime
 import requests
+import logging
 
 CLIENT_ID = "public_a3a3b3c2278b4deabd9108e74c5e8af2"
 CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
@@ -51,23 +52,42 @@ def generate_message_body(data, field_labels, is_update=False, include_chatter_f
         title = "Dati di fatturazione creati:"
 
     return f"<p><b><font size='4' face='Arial'>{title}</font></b><br>" + "<br>".join(lines) + "</p>"
-
-
+_logger = logging.getLogger(__name__)
 
 def fetch_room_cleaning_details(pms_product_id):
     url = "https://api.octorate.com/connect/rest/v1/pms"
-    # Usa il token statico qui
     headers = {
         'accept': 'application/json',
-        'Authorization': 'Bearer 00c892e4b305483fbe74bbf1fb3dcf18QWFVRTEFIP'
+        'Authorization': 'Bearer 5fc9e202a3ce46c592bb793b3a70a6adHRGYUDTYFO'
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json().get("data", [])
         for room in data:
             if room["id"] == pms_product_id:
-                return room.get("clean"), room.get("lastCleaningDate")
-    return None, None
+                _logger.info(f"Room data found: {room}")
+                return room.get("clean"), room.get("lastCleaningDate"), room.get("name")
+            else:
+                _logger.info(f"Room data not matching: {room}")
+    else:
+        _logger.error(f"Failed to fetch room details: {response.status_code} - {response.text}")
+    return None, None, None
+
+
+# def fetch_room_cleaning_details(pms_product_id):
+#     url = "https://api.octorate.com/connect/rest/v1/pms"
+#     # Usa il token statico qui
+#     headers = {
+#         'accept': 'application/json',
+#         'Authorization': 'Bearer 00c892e4b305483fbe74bbf1fb3dcf18QWFVRTEFIP'
+#     }
+#     response = requests.get(url, headers=headers)
+#     if response.status_code == 200:
+#         data = response.json().get("data", [])
+#         for room in data:
+#             if room["id"] == pms_product_id:
+#                 return room.get("clean"), room.get("lastCleaningDate"), room.get("name")
+#     return None, None, None
 
 
 
@@ -144,10 +164,18 @@ class RoomBookingController(http.Controller):
             # Aggiungi il messaggio di pulizia solo se invoice_record è stato definito
             if invoice_record:
                 pms_product_id = content.get("pmsProduct")
-                clean, last_cleaning_date = fetch_room_cleaning_details(pms_product_id)
+                clean, last_cleaning_date, name = fetch_room_cleaning_details(pms_product_id)
                 cleaning_details_message = f"Room Cleaning Status: {'Clean' if clean else 'Not Clean'}\n" \
-                                        f"Last Cleaning Date: {last_cleaning_date}"
+                                        f"Last Cleaning Date: {last_cleaning_date}"\
+                                        f"Nome specifico stanza: {name}"
+                
                 invoice_record.message_post(body=cleaning_details_message, message_type='comment')
+                cleaning_details = {
+                    'cleaning_status': 'Clean' if clean else 'Not Clean',
+                    'last_cleaning_date': last_cleaning_date,
+                    'name': name
+                }
+                response_data.update({'cleaning_details': cleaning_details})
 # LALALA
             
 
@@ -170,6 +198,7 @@ class RoomBookingController(http.Controller):
                 "Checkin_effettuato" : reservation_data["effectiveCheckin"],
                 "Checkout_effettuato" : reservation_data["effectiveCheckout"],
                 "Note interne" : reservation_data["note interne"],
+                'cleaning_details': cleaning_details
             })
             # 'effectiveCheckin':content.get("effectiveCheckin"),
             # 'effectiveCheckout':content.get("effectiveCheckout"), 
