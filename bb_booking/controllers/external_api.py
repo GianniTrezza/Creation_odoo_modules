@@ -8,9 +8,6 @@ import datetime
 import requests
 import logging
 
-CLIENT_ID = "public_a3a3b3c2278b4deabd9108e74c5e8af2"
-CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
-
 
 # _logger = logging.getLogger(__name__)
 
@@ -38,20 +35,33 @@ field_labels = {
     'privateNotes': 'Note interne'
 }
 
-def generate_message_body(data, field_labels, is_update=False, include_chatter_fields=False):
+# def generate_message_body(data, field_labels, is_update=False, include_chatter_fields=False):
+#     lines = []
+#     for field, label in field_labels.items():
+#         if field in data and (include_chatter_fields or field not in ['privateNotes', 'effectiveCheckin', 'effectiveCheckout']):
+#             value = data[field]
+#             formatted_value = value.strftime('%Y-%m-%d') if isinstance(value, datetime.date) else value
+#             lines.append(f"{label}: {formatted_value}")
+
+#     if is_update:
+#         title = "Dati aggiornati:"
+#     else:
+#         title = "Dati di fatturazione creati:"
+
+#     return f"<p><b><font size='4' face='Arial'>{title}</font></b><br>" + "<br>".join(lines) + "</p>"
+def generate_message_body(data, field_labels, changes=None, is_update=False, include_chatter_fields=False):
     lines = []
     for field, label in field_labels.items():
         if field in data and (include_chatter_fields or field not in ['privateNotes', 'effectiveCheckin', 'effectiveCheckout']):
             value = data[field]
             formatted_value = value.strftime('%Y-%m-%d') if isinstance(value, datetime.date) else value
-            lines.append(f"{label}: {formatted_value}")
+            if not is_update or (is_update and field in changes):
+                lines.append(f"{label}: {formatted_value}")
 
-    if is_update:
-        title = "Dati aggiornati:"
-    else:
-        title = "Dati di fatturazione creati:"
-
+    title = "Dati aggiornati:" if is_update else "Dati di fatturazione creati:"
     return f"<p><b><font size='4' face='Arial'>{title}</font></b><br>" + "<br>".join(lines) + "</p>"
+
+
 _logger = logging.getLogger(__name__)
 
 def fetch_room_cleaning_details(pms_product_id):
@@ -328,7 +338,7 @@ class RoomBookingController(http.Controller):
             'team_id': team_vendite.id
         }
         invoice_record = request.env['account.move'].sudo().create(invoice_values)
-        invoice_message_body = generate_message_body(reservation_data, field_labels, is_update=False, include_chatter_fields=True)
+        invoice_message_body = generate_message_body(reservation_data, field_labels, changes=None, is_update=False, include_chatter_fields=True)
         invoice_record.message_post(body=invoice_message_body, message_type='comment')
 
         booking_line_values = {
@@ -389,5 +399,5 @@ class RoomBookingController(http.Controller):
                 line.write({'quantity': reservation_data['totalGuest'] * num_notti, 'price_unit': 2})
 
         if changes:
-            invoice_message_body = generate_message_body(reservation_data, field_labels, is_update=True, include_chatter_fields=True)
+            invoice_message_body = generate_message_body(reservation_data, field_labels, changes, is_update=True, include_chatter_fields=True)
             invoice_record.message_post(body=invoice_message_body, message_type='comment')
