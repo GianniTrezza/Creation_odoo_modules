@@ -257,3 +257,4 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 # for event_type in event_types:
 #     create_subscription(event_type, access_token_a)
 #     print("è andata")
+       

@@ -1,7 +1,7 @@
 {
     'name': 'Prenotazione stanze e appartamenti',
     'version': '1.0',
-    'author': 'Simone',
+    'author': 'Gianni e Simone',
     'category': 'Custom Modules',
     'summary': 'Gestisce le fatture dal sito Octorate verso Odoo',
     'description': 'Prenotazione stanze: integrazione con Octorate',

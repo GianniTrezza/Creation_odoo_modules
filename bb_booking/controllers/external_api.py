@@ -38,10 +38,10 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 #refresh token
 
 token_info = {
-    "access_token": "24bd0b9bbc254d798bd13138a1d64510BTLTZSCSMH",
-    "expireDate": "2023-11-24T15:14:45.628Z[UTC]"
+    "access_token": "6dded56e51594003a0d0ed1b4e0ec717TGAUGCTLWC",
+    "expireDate": "2023-11-28T16:54:51.227Z[UTC]"
 }
-refresh_token = "202d09a5186a47928c81f0290e335944"
+refresh_token = "2acf003360ea4ebca6871b5d7e56efe2"
 
 def is_token_expired(token_info):
     expire_date_str = token_info.get("expireDate")
@@ -159,6 +159,11 @@ class RoomBookingController(http.Controller):
             guestsList_ = content.get("guestsList")
             roomGross_ = content.get("roomGross")
             totalGuest_ = content.get("totalGuest")
+            totalChildren_ = content.get("totalChildren")
+            totalInfants_ = content.get("totalInfants")
+            #calcolo adulti
+            totaleAdults = totalGuest_ - totalChildren_ - totalInfants_
+            
             numero_stanza_ = content.get("rooms")
             priceBreakdown = content.get("priceBreakdown")
             prezzo_unitario_ = priceBreakdown[0].get("price")
@@ -196,7 +201,7 @@ class RoomBookingController(http.Controller):
             data_creazione_mod = fields.Date.from_string(data_creazione_)
             delta = checkout_date - checkin_date
             n_notti = delta.days
-            quantity_soggiorno = totalGuest_ * n_notti
+            quantity_soggiorno = totaleAdults * n_notti
             nome_stanza = content.get("roomName")
 
             # gestione della tipologia della camera
@@ -236,7 +241,8 @@ class RoomBookingController(http.Controller):
                 "Stato pagamento": stato_pagamento,
                 "Ultima pulizia": ultima_pulizia,
                 "Tipologia camera": tipologia_camera,
-                "Stato camera": stato_camera
+                "Stato camera": stato_camera,
+                "numero totale di adulti": totaleAdults
             }
             #creazione piattaforma
 
@@ -246,13 +252,24 @@ class RoomBookingController(http.Controller):
 
             # Creazione della fattura
             room_booking_obj = []  # Inizializza la variabile come False
+            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+            # account_id = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+
             customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+            account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
+            print(f"Il customer account è", account_id)
             room_product = request.env['product.product'].sudo().search([('name', '=', nome_stanza)], limit=1)
             if not room_product:
                 room_product = request.env['product.product'].sudo().create({'name': nome_stanza})
+            
+            # tassa_soggiorno_product = request.env['product.product'].sudo().search([('name', '=', 'Tassa di Soggiorno')], limit=1)
             tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa soggiorno")], limit=1)
-
+            if not tassa_soggiorno:
+                vals = {
+                'name': 'Tassa di Soggiorno',
+                'type': 'service',
+            }
+            tassa_soggiorno = request.env['product.product'].sudo().create(vals)
             if tipo == 'RESERVATION_CREATED':
                 # ********CONTROLLO/CREAZIONE DEL CONTATTO******
                 contact_bb = request.env['res.partner'].sudo().create({
@@ -282,7 +299,7 @@ class RoomBookingController(http.Controller):
                     'rooms': n_notti,
                     'roomGross': roomGross_,
                     'partner_id': intero_contact,  # Utilizza l'ID del contatto come partner_id
-                    'invoice_date': data_creazione_mod,
+                    'invoice_date': checkin_date,
                     #'ref': room_name,
                     'team_id': team_vendite.id,
                     'email_utente': email_,
@@ -295,7 +312,10 @@ class RoomBookingController(http.Controller):
                     'tipo_di_pagamento': tipo_pagamento,
                     'pulizia_camera': stato_camera,
                     'ultima_pulizia': ultima_pulizia,
-                    'tipologia_camera': tipologia_camera
+                    'tipologia_camera': tipologia_camera,
+                    'totalChildren': totalChildren_,
+                    'totalInfants': totalInfants_,
+                    'totale_adulti': totaleAdults
 
 
                 })
@@ -310,7 +330,7 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer_} dal {checkin_} al {checkout_}",
                     'quantity': 1,
                     'price_unit': roomGross_,
-                    'account_id': customer_account.id
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
 
@@ -320,8 +340,20 @@ class RoomBookingController(http.Controller):
                     'product_id': tassa_soggiorno.id,  # ID del prodotto 'Tassa di Soggiorno' nel portale amministrazione
                     'name': "Tassa di soggiorno",
                     'quantity': quantity_soggiorno,
-                    'account_id': customer_account.id
+                    'price_unit': 3,
+                    'account_id': account_id
                 }
+                # tourist_tax_line_values = {
+                #         'move_id': invoice_record.id,
+                #         'product_id': tassa_soggiorno_product.id,
+                #         'name': "Tassa soggiorno",
+                #         'quantity': reservation_data['totalGuest']*num_notti,
+                #         'price_unit': 2,
+                #         'account_id': account_id
+                #     }
+                    
+                # request.env['account.move.line'].sudo().create(tourist_tax_line_values)
+
                 linee_fattura.append(linea_fattura_tassasoggiorno)
                 for line in linee_fattura:
                     request.env['account.move.line'].sudo().create(line)
@@ -329,30 +361,34 @@ class RoomBookingController(http.Controller):
                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
                 room_booking_obj.message_post(
                     body=f"<p><b><font size='4' face='Arial'>Riepilogo dei dati:</font></b><br>"
-                         f"Refer: {refer_}<br>"
+                         #f"Refer: {refer_}<br>"
                          f"Prezzo totale: {roomGross_}<br>"
-                         f"Ospiti: {totalGuest_}<br>"
-                         f"Checkin: {checkin_}<br>"
-                         f"Checkout: {checkout_}<br>"
-                         f"Numero stanza: {numero_stanza_}<br>"
+                         f"Ospiti totali: {totalGuest_}<br>"
+                         f"Adulti: {totaleAdults}<br>"
+                         f"Bambini: {totalChildren_}<br>"
+                         f"Neonati: {totalInfants_}<br>"
+                         #f"Checkin: {checkin_}<br>"
+                         #f"Checkout: {checkout_}<br>"
+                         #f"Numero stanza: {numero_stanza_}<br>"
                          f"Numero notti: {n_notti}<br>"
-                         f"Quantity soggiorno: {quantity_soggiorno}<br>"
-                         f"Prezzo unitario: {prezzo_unitario_}<br>"
-                         f"City utente: {city_}<br>"
-                         f"Email: {email_}<br>"
-                         f"Guests List: {guestsList_}<br>"
-                         f"Telefono: {phone_}<br>"
-                         f"Indirizzo: {address_}<br>"
-                         f"<span style='color:red; font-weight:bold;'>Note interne: {note_interne_}</span><br>"
-                         f"Nome stanza: {nome_stanza}<br>"
-                         f"Nome camera: {tipologia_camera}<br>"
-                         f"Pulizia camera:{stato_camera}<br>"
-                         f"Ultima pulizia:{ultima_pulizia}<br>"
-                         f"Piattaforma di prenotazione: {piattaforma}<br>"
-                         f"Check in effettuato: {effettivo_Checkin} <br>"
-                         f"Check out effettuato: {effettivo_Checkout} <br>"
+                         #f"Quantity soggiorno: {quantity_soggiorno}<br>"
+                         #f"Prezzo unitario: {prezzo_unitario_}<br>"
+                         #f"City utente: {city_}<br>"
+                         f"Note interne: {note_interne_}<br>"
                          f"Stato del pagamento: {stato_pagamento} <br>"
-                         f"Tipo di pagamento: {tipo_pagamento} </pr>",
+                         f"Tipo di pagamento: {tipo_pagamento} <br>"
+                         f"<p><b><font size='2' face='Arial'>Informazione cliente:</font></b><br>"
+                         f"Email: {email_}<br>"
+                         #f"Guests List: {guestsList_}<br>"
+                         f"Telefono: {phone_}</pr>",
+                         #f"Indirizzo: {address_}<br>"
+                         #f"Nome stanza: {nome_stanza}<br>"
+                         #f"Nome camera: {tipologia_camera}<br>"
+                         #f"Pulizia camera:{stato_camera}<br>"
+                         #f"Ultima pulizia:{ultima_pulizia}<br>"
+                         #f"Piattaforma di prenotazione: {piattaforma}<br>"
+                         #f"Check in effettuato: {effettivo_Checkin} <br>"
+                         #f"Check out effettuato: {effettivo_Checkout} <br>"
                     message_type='comment'
                 )
 
@@ -378,7 +414,7 @@ class RoomBookingController(http.Controller):
                         'checkout': checkout_,
                         'totalGuest': totalGuest_,
                         'roomGross': roomGross_,
-                        'invoice_date': data_creazione_mod,  # DOMANDA:  DEVO AGGIUNGERE LA DATA DI MODIFICA?
+                        'invoice_date': checkin_date,  # DOMANDA:  DEVO AGGIUNGERE LA DATA DI MODIFICA?
                         # 'partner_id': intero_contact  # Utilizza l'ID del contatto come partner_id
                         #'ref': room_name,
                         'team_id': team_vendite.id,
@@ -393,6 +429,9 @@ class RoomBookingController(http.Controller):
                         'checkout_effettuato': effettivo_Checkout,
                         'stato_del_pagamento': stato_pagamento,
                         'tipo_di_pagamento': tipo_pagamento,
+                        'totalChildren': totalChildren_,
+                        'totalInfants': totalInfants_,
+                        'totale_adulti': totaleAdults
 
                     })
 
@@ -511,6 +550,9 @@ class RoomBookingController(http.Controller):
                 paymentType = reservation.get("paymentType")
                 roomGross = reservation.get("roomGross")
                 totalGuest = reservation.get("totalGuest")
+                totalChildren = reservation.get("totalChildren")
+                totalInfants = reservation.get("totalInfants")
+                totaleadulti = totalGuest - totalChildren - totalInfants
                 checkin = reservation.get("checkin")
                 checkout = reservation.get("checkout")
                 createTime = reservation.get("createTime")
@@ -522,7 +564,7 @@ class RoomBookingController(http.Controller):
                 data_creazione_mod = fields.Date.from_string(createTime)
                 delta = checkout_date - checkin_date
                 n_notti = delta.days
-                quantity_soggiorno = totalGuest * n_notti
+                quantity_soggiorno = totaleadulti * n_notti
 
 
                 # gestione della tipologia della camera
@@ -558,7 +600,10 @@ class RoomBookingController(http.Controller):
                     "Nome stanza":  roomName,
                     "Ultima pulizia": ultima_pulizia,
                     "Tipologia camera": tipologia_camera,
-                    "Stato camera": stato_camera
+                    "Stato camera": stato_camera,
+                    "totale adulti": totaleadulti,
+                    "totale bambini": totalChildren,
+                    "totale neonati": totalInfants
                 }
 
                 response_data_list.append(response_data)
@@ -570,12 +615,23 @@ class RoomBookingController(http.Controller):
 
                 # Creazione della fattura
                 room_booking_obj = []  # Inizializza la variabile come False
+                # codice simone
+                # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+                # account_id = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+
                 customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-                customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+                account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
                 room_product = request.env['product.product'].sudo().search([('name', '=', roomName)], limit=1)
                 if not room_product:
                     room_product = request.env['product.product'].sudo().create({'name': roomName})
                 tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa soggiorno")], limit=1)
+                if not tassa_soggiorno:
+                    vals = {
+                    'name': 'Tassa di Soggiorno',
+                    'type': 'service',
+                }
+                tassa_soggiorno = request.env['product.product'].sudo().create(vals)
+                    
 
 
             # ********CONTROLLO/CREAZIONE DEL CONTATTO******
@@ -603,7 +659,7 @@ class RoomBookingController(http.Controller):
                     'rooms': n_notti,
                     'roomGross': roomGross,
                     'partner_id': intero_contact,  # Utilizza l'ID del contatto come partner_id
-                    'invoice_date': data_creazione_mod,
+                    'invoice_date': checkin_date,
                     # 'ref': room_name,
                     'team_id': team_vendite.id,
                     'email_utente': email,
@@ -628,7 +684,7 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer} dal {checkin_date} al {checkout_date}",
                     'quantity': 1,
                     'price_unit': roomGross,
-                    'account_id': customer_account.id
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
 
@@ -638,7 +694,7 @@ class RoomBookingController(http.Controller):
                     'product_id': tassa_soggiorno.id,  # ID del prodotto 'Tassa di Soggiorno' nel portale amministrazione
                     'name': "Tassa di soggiorno",
                     'quantity': quantity_soggiorno,
-                    'account_id': customer_account.id
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_tassasoggiorno)
                 for line in linee_fattura:
@@ -647,26 +703,30 @@ class RoomBookingController(http.Controller):
                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
                 room_booking_obj.message_post(
                     body=f"<p><b><font size='4' face='Arial'>Riepilogo dei dati:</font></b><br>"
-                         f"Refer: {refer}<br>"
-                         f"Prezzo totale: {roomGross}<br>"
-                         f"Ospiti: {totalGuest}<br>"
-                         f"Checkin: {checkin}<br>"
-                         f"Checkout: {checkout}<br>"
+                         #f"Refer: {refer}<br>"
+                         #f"Prezzo totale: {roomGross}<br>"
+                         f"Ospiti totali: {totalGuest}<br>"
+                         f"Adulti: {totaleadulti}<br>"
+                         f"Bambini: {totalChildren}<br>"
+                         f"Neonati: {totalInfants}<br>"
+                         #f"Checkin: {checkin}<br>"
+                         #f"Checkout: {checkout}<br>"
                          f"Numero notti: {n_notti}<br>"
-                         f"Quantity soggiorno: {quantity_soggiorno}<br>"
-                         f"Prezzo unitario: {roomGross}<br>"
-                         f"City utente: {city}<br>"
-                         f"Email: {email}<br>"
-                         f"Guests List: {nome_completo}<br>"
-                         f"Telefono: {phone}<br>"
-                         f"<span style='color:red; font-weight:bold;'>Note interne: {channelNotes}</span><br>"
-                         f"Nome stanza: {roomName}<br>"
                          f"Nome camera: {tipologia_camera}<br>"
-                         f"Pulizia camera:{stato_camera}<br>"
-                         f"Ultima pulizia:{ultima_pulizia}<br>"
-                         f"Piattaforma di prenotazione: {channelName}<br>"
+                         f"Note interne: {channelNotes}<br>"
                          f"Stato del pagamento: {paymentStatus} <br>"
-                         f"Tipo di pagamento: {paymentType} </pr>",
+                         f"Tipo di pagamento: {paymentType} <br>"                         
+                         #f"Quantity soggiorno: {quantity_soggiorno}<br>"
+                         #f"Prezzo unitario: {roomGross}<br>"
+                         #f"City utente: {city}<br>"
+                         f"<p><b><font size='2' face='Arial'>Informazioni cliente</font></b><br>"
+                         f"Email: {email}<br>"
+                         #f"Guests List: {nome_completo}<br>"
+                         f"Telefono: {phone}</pr>",
+                         #f"Nome stanza: {roomName}<br>"
+                         #f"Pulizia camera:{stato_camera}<br>"
+                         #f"Ultima pulizia:{ultima_pulizia}<br>"
+                         #f"Piattaforma di prenotazione: {channelName}<br>"
                     message_type='comment'
                 )
 
@@ -675,6 +735,21 @@ class RoomBookingController(http.Controller):
             print("Errore nella richiesta API:", response.status_code)
             # In caso di errore, puoi restituire una risposta di errore appropriata
             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
+
+
+
+
+
+
+# CREDENZIALI ISTANZA DI TEST (OCTORATE)
+# token_info = {
+#     "access_token": "3fd17ffe421b44e7b70165d1c0cc89f8OFCURPETLT",
+#     "expireDate": "2023-11-24T20:58:52.435Z[UTC]"
+# }
+# refresh_token = "2acf003360ea4ebca6871b5d7e56efe2"
+
+
+# NEW CODE
 
 
 
