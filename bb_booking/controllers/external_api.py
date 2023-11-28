@@ -263,26 +263,33 @@ class RoomBookingController(http.Controller):
                 room_product = request.env['product.product'].sudo().create({'name': nome_stanza})
             
             # tassa_soggiorno_product = request.env['product.product'].sudo().search([('name', '=', 'Tassa di Soggiorno')], limit=1)
-            tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa soggiorno")], limit=1)
+            tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa di Soggiorno")], limit=1)
             if not tassa_soggiorno:
-                vals = {
-                'name': 'Tassa di Soggiorno',
-                'type': 'service',
-            }
-            tassa_soggiorno = request.env['product.product'].sudo().create(vals)
+                tassa_soggiorno = request.env['product.product'].sudo().create('name', '=', "Tassa di Soggiorno")
+
             if tipo == 'RESERVATION_CREATED':
-                # ********CONTROLLO/CREAZIONE DEL CONTATTO******
-                contact_bb = request.env['res.partner'].sudo().create({
-                    'company_type': 'person',
-                    'name': guestsList_,
-                    'street': address_,
-                    'city': city_,
-                    'email': email_,
-                    'phone': phone_
-                })
+                existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_)], limit=1)
+                if existing_contact:
+                    existing_contact.write({
+                        'name': guestsList_,
+                        'street': address_,
+                        'city': city_,
+                        'phone': phone_
+                    })
+                    contact_id = existing_contact.id
+                else:
+                    contact_bb = request.env['res.partner'].sudo().create({
+                        'company_type': 'person',
+                        'name': guestsList_,
+                        'street': address_,
+                        'city': city_,
+                        'email': email_,
+                        'phone': phone_
+                    })
+                    contact_id = contact_bb.id
 
                 # stampa l'ID del contatto appena creato
-                contact_id = contact_bb.id
+                # contact_id = contact_bb.id
                 intero_contact = int(contact_id)
                 print("ID CONTATTO CREATO : ", intero_contact)
 
@@ -346,7 +353,7 @@ class RoomBookingController(http.Controller):
                 # tourist_tax_line_values = {
                 #         'move_id': invoice_record.id,
                 #         'product_id': tassa_soggiorno_product.id,
-                #         'name': "Tassa soggiorno",
+                #         'name': "Tassa di Soggiorno",
                 #         'quantity': reservation_data['totalGuest']*num_notti,
                 #         'price_unit': 2,
                 #         'account_id': account_id
@@ -395,14 +402,13 @@ class RoomBookingController(http.Controller):
 
             # *************************************************************************************
             elif tipo == 'RESERVATION_CHANGE':
-
+                
+    # Cerca la fattura esistente con il riferimento fornito
                 existing_invoice = request.env['account.move'].sudo().search([
-
                     ('refer', '=', refer_),
-
                     ('move_type', '=', 'out_invoice')
-
                 ], limit=1)
+
 
                 if existing_invoice:
                     existing_invoice.write({
@@ -434,7 +440,19 @@ class RoomBookingController(http.Controller):
                         'totale_adulti': totaleAdults
 
                     })
+                    existing_contact = request.env['res.partner'].sudo().search([('id', '=', existing_invoice.partner_id.id)], limit=1)
+                    # if existing_contact and existing_contact.name != guestsList_:
+                    #     existing_contact.write({'name': guestsList_,
+                    #                             'phone': phone_})
+                    if existing_contact:
+                        update_vals = {}
+                        if existing_contact.name != guestsList_:
+                            update_vals['name'] = guestsList_
+                        if phone_ and existing_contact.phone != phone_:
+                            update_vals['phone'] = phone_
 
+                        if update_vals:
+                            existing_contact.write(update_vals)
                     existing_invoice_line_ids = existing_invoice.invoice_line_ids
 
                     # Modifica le linee di fattura esistenti
@@ -505,7 +523,33 @@ class RoomBookingController(http.Controller):
 
     @http.route('/api/import', cors='*', auth='public', methods=['GET'], csrf=False, website=False)
     def importazione(self, refresh_token=None, **post):
+        # try:
+        #     access_token = get_access_token(refresh_token)
 
+        #     if not access_token:
+        #         _logger.error("Errore nell'ottenere il token di accesso.")
+        #         return Response("Errore di autenticazione", status=401)
+
+        #     url = "https://api.octorate.com/connect/rest/v1/reservation/872964?type=CHECKIN&startDate=2023-12-01"
+        #     headers = {
+        #         'accept': 'application/json',
+        #         'Authorization': f'Bearer {access_token}'
+        #     }
+            
+        #     response = requests.get(url, headers=headers, timeout=60)
+
+        #     if response.status_code != 200:
+        #         _logger.error(f"Errore nella richiesta API: {response.status_code}")
+        #         return Response("Errore nella richiesta API", status=response.status_code)
+
+        #     data = response.json()
+        #     response_data_list = []
+        # except Exception as e:
+        #     _logger.exception(f"Si è verificato un errore inatteso: {e}")
+        #     return Response("Errore interno del server", status=500)
+
+
+# VECCHIO CODICE: INIZIO
         access_token = get_access_token(refresh_token)
 
         if access_token:
@@ -522,7 +566,7 @@ class RoomBookingController(http.Controller):
         }
 
         # Esegui la richiesta GET all'API
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=60)
 
         # Verifica se la richiesta ha avuto successo
         if response.status_code == 200:
@@ -530,6 +574,7 @@ class RoomBookingController(http.Controller):
             data = response.json()
 
             response_data_list = []
+# VECCHIO CODICE: FINE
 
             # Estrai le prenotazioni dalla lista "data" e cicla su di esse
             for reservation in data.get("data", []):
@@ -624,17 +669,15 @@ class RoomBookingController(http.Controller):
                 room_product = request.env['product.product'].sudo().search([('name', '=', roomName)], limit=1)
                 if not room_product:
                     room_product = request.env['product.product'].sudo().create({'name': roomName})
-                tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa soggiorno")], limit=1)
+                tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa di Soggiorno")], limit=1)
                 if not tassa_soggiorno:
-                    vals = {
-                    'name': 'Tassa di Soggiorno',
-                    'type': 'service',
-                }
-                tassa_soggiorno = request.env['product.product'].sudo().create(vals)
+                    tassa_soggiorno = request.env['product.product'].sudo().create('name', '=', "Tassa di Soggiorno")
                     
+            existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
 
-
-            # ********CONTROLLO/CREAZIONE DEL CONTATTO******
+            if existing_contact:
+                contact_id = existing_contact.id
+            else:
                 contact_bb = request.env['res.partner'].sudo().create({
                     'company_type': 'person',
                     'name': nome_completo,
@@ -642,9 +685,9 @@ class RoomBookingController(http.Controller):
                     'email': email,
                     'phone': phone
                 })
-
-                # stampa l'ID del contatto appena creato
                 contact_id = contact_bb.id
+
+                # contact_id = contact_bb.id
                 intero_contact = int(contact_id)
                 print("ID CONTATTO CREATO : ", intero_contact)
 
@@ -676,8 +719,7 @@ class RoomBookingController(http.Controller):
 
                 # Creazione delle linee della fattura
                 linee_fattura = []
-
-                # Linea per il prodotto 1 (Pernotto)
+                
                 linea_fattura_pernotto = {
                     'move_id': room_booking_obj.id,
                     'product_id': room_product.id,  # ID del prodotto 'Pernotto' nel portale amministrazione
@@ -687,6 +729,7 @@ class RoomBookingController(http.Controller):
                     'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
+                
 
                 # Linea per il prodotto 2 (Tassa di Soggiorno)
                 linea_fattura_tassasoggiorno = {

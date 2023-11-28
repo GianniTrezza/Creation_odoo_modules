@@ -258,3 +258,67 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 #     create_subscription(event_type, access_token_a)
 #     print("è andata")
        
+# All'interno della funzione handle_custom_endpoint
+
+# ...
+
+# if tipo == 'RESERVATION_CREATED':
+#     # Ricerca del contatto esistente prima di crearne uno nuovo
+#     existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_)], limit=1)
+#     if existing_contact:
+#         # Aggiornare il contatto esistente
+#         existing_contact.write({
+#             'name': guestsList_,
+#             'street': address_,
+#             'city': city_,
+#             'phone': phone_
+#         })
+#         contact_id = existing_contact.id
+#     else:
+#         # Creazione di un nuovo contatto
+#         contact_bb = request.env['res.partner'].sudo().create({
+#             'company_type': 'person',
+#             'name': guestsList_,
+#             'street': address_,
+#             'city': city_,
+#             'email': email_,
+#             'phone': phone_
+#         })
+#         contact_id = contact_bb.id
+
+#     # Codice per la creazione della fattura e altre operazioni per una nuova prenotazione
+#     # ...
+
+# elif tipo == 'RESERVATION_CHANGE':
+#     # Cerca la fattura esistente con il riferimento fornito
+#     existing_invoice = request.env['account.move'].sudo().search([
+#         ('refer', '=', refer_),
+#         ('move_type', '=', 'out_invoice')
+#     ], limit=1)
+
+#     if existing_invoice:
+#         # Aggiornamento della fattura esistente
+#         existing_invoice.write({
+#             # Aggiornamenti ai dettagli della fattura
+#             # ...
+#         })
+
+#         # Aggiornamento del nome del cliente se cambiato
+#         existing_contact = request.env['res.partner'].sudo().search([('id', '=', existing_invoice.partner_id.id)], limit=1)
+#         if existing_contact and existing_contact.name != guestsList_:
+#             existing_contact.write({'name': guestsList_})
+
+#         # Aggiornamento delle linee di fattura
+#         # ...
+
+#     # Altri codici specifici per la gestione dei cambiamenti di prenotazione
+#     # ...
+
+# elif tipo == 'RESERVATION_CANCELLED':
+#     # Gestione delle cancellazioni delle prenotazioni
+#     # Trova la fattura corrispondente e aggiorna lo stato o esegui le azioni necessarie
+#     # ...
+
+# # Gestione di altri tipi di richieste o situazioni di errore
+# # ...
+
