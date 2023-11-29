@@ -5,6 +5,7 @@ from odoo import http, fields
 from odoo.http import request, Response, _logger
 from odoo.tools.safe_eval import json, datetime
 from datetime import datetime
+from urllib.parse import urlencode
 
 import json
 
@@ -41,7 +42,7 @@ token_info = {
     "access_token": "6dded56e51594003a0d0ed1b4e0ec717TGAUGCTLWC",
     "expireDate": "2023-11-28T16:54:51.227Z[UTC]"
 }
-refresh_token = "2acf003360ea4ebca6871b5d7e56efe2"
+REFRESH_TOKEN = "2acf003360ea4ebca6871b5d7e56efe2"
 
 def is_token_expired(token_info):
     expire_date_str = token_info.get("expireDate")
@@ -49,44 +50,74 @@ def is_token_expired(token_info):
         expire_date = datetime.strptime(expire_date_str, "%Y-%m-%dT%H:%M:%S.%fZ[UTC]")
         return datetime.utcnow() > expire_date
     return True
-
 def refresh_access_token(refresh_token):
     url = "https://api.octorate.com/connect/rest/v1/identity/refresh"
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
-        'refresh_token': refresh_token
+        "refresh_token": refresh_token
     }
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded'
     }
-    response = requests.post(url, data=data, headers=headers)
+    response = requests.post(url, data=urlencode(data), headers=headers)
+
+    _logger.info(f"Sending refresh token request to {url} with data: {data}")
+
     if response.status_code == 200:
         response_data = response.json()
         new_access_token = response_data.get("access_token")
-        new_expire_date = response_data.get("expireDate")  # Aggiungi qui la logica per estrarre la nuova data di scadenza
+        new_expire_date = response_data.get("expireDate")
         return new_access_token, new_expire_date
     else:
-        print(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
+        _logger.error(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
         return None, None
+
+
+# def refresh_access_token(refresh_token):
+#     url = "https://api.octorate.com/connect/rest/v1/identity/refresh"
+#     data = {
+#         "client_id": CLIENT_ID,
+#         "client_secret": CLIENT_SECRET,
+#         "refresh_token": refresh_token
+#     }
+#     headers = {
+#         'Content-Type': 'application/x-www-form-urlencoded'
+#     }
+#     response = requests.post(url, data=urlencode(data), headers=headers)
+#     if response.status_code == 200:
+#         response_data = response.json()
+#         new_access_token = response_data.get("access_token")
+#         new_expire_date = response_data.get("expireDate")
+#         return new_access_token, new_expire_date
+#     else:
+#         _logger.error(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
+#         return None, None
+
+    # else:
+    #     print(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
+    #     return None, None
 
 def get_access_token(refresh_token):
     global token_info
+    _logger.info(f"Tentativo di rinnovo del token con refresh_token: {refresh_token}")
 
     if is_token_expired(token_info):
-        new_access_token, new_expire_date = refresh_access_token(refresh_token)
+        new_access_token, new_expire_date = refresh_access_token(REFRESH_TOKEN)
+
         if new_access_token:
             token_info["access_token"] = new_access_token
-            token_info["expireDate"] = new_expire_date  # Aggiornamento della data di scadenza
+            token_info["expireDate"] = new_expire_date
+            _logger.info("Token di accesso rinnovato con successo.") 
             return new_access_token
         else:
-            print("Impossibile ottenere un nuovo access token.")
+            _logger.error("Impossibile ottenere un nuovo access token.")
             return None
     else:
         return token_info["access_token"]
 
 def fetch_room_cleaning_details(pms_product_id, refresh_token):
-    access_token = get_access_token(refresh_token)
+    access_token = get_access_token(REFRESH_TOKEN)
 
     url = "https://api.octorate.com/connect/rest/v1/pms"
     headers = {
@@ -96,6 +127,7 @@ def fetch_room_cleaning_details(pms_product_id, refresh_token):
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json().get("data", [])
+        
         for room in data:
             if room["id"] == pms_product_id:
                 return {
@@ -134,7 +166,7 @@ class RoomBookingController(http.Controller):
 
     #MAIN
     def handle_custom_endpoint(self, refresh_token=None, **post):
-        access_token = get_access_token(refresh_token)
+        access_token = get_access_token(REFRESH_TOKEN)
 
         if access_token:
             print(f"Token di accesso ottenuto con successo: {access_token}")
@@ -523,41 +555,15 @@ class RoomBookingController(http.Controller):
 
     @http.route('/api/import', cors='*', auth='public', methods=['GET'], csrf=False, website=False)
     def importazione(self, refresh_token=None, **post):
-        # try:
-        #     access_token = get_access_token(refresh_token)
-
-        #     if not access_token:
-        #         _logger.error("Errore nell'ottenere il token di accesso.")
-        #         return Response("Errore di autenticazione", status=401)
-
-        #     url = "https://api.octorate.com/connect/rest/v1/reservation/872964?type=CHECKIN&startDate=2023-12-01"
-        #     headers = {
-        #         'accept': 'application/json',
-        #         'Authorization': f'Bearer {access_token}'
-        #     }
-            
-        #     response = requests.get(url, headers=headers, timeout=60)
-
-        #     if response.status_code != 200:
-        #         _logger.error(f"Errore nella richiesta API: {response.status_code}")
-        #         return Response("Errore nella richiesta API", status=response.status_code)
-
-        #     data = response.json()
-        #     response_data_list = []
-        # except Exception as e:
-        #     _logger.exception(f"Si è verificato un errore inatteso: {e}")
-        #     return Response("Errore interno del server", status=500)
-
-
-# VECCHIO CODICE: INIZIO
-        access_token = get_access_token(refresh_token)
+        
+        access_token = get_access_token(REFRESH_TOKEN)
 
         if access_token:
             print(f"Token di accesso ottenuto con successo: {access_token}")
         else:
             print("Errore nell'ottenere il token di accesso.")
 
-        url = "https://api.octorate.com/connect/rest/v1/reservation/872964?type=CHECKIN&startDate=2023-12-01"
+        url = "https://api.octorate.com/connect/rest/v1/reservation/872964?type=CHECKIN&startDate=2024-01-01"
 
         # Header della richiesta con il token di autenticazione
         headers = {
@@ -566,17 +572,17 @@ class RoomBookingController(http.Controller):
         }
 
         # Esegui la richiesta GET all'API
-        response = requests.get(url, headers=headers, timeout=60)
+        response = requests.get(url, headers=headers)
 
         # Verifica se la richiesta ha avuto successo
         if response.status_code == 200:
             # Parsa la risposta JSON
             data = response.json()
+            _logger.info(f"Dati ricevuti dall'API: {data}")
+
 
             response_data_list = []
-# VECCHIO CODICE: FINE
 
-            # Estrai le prenotazioni dalla lista "data" e cicla su di esse
             for reservation in data.get("data", []):
                 refer = reservation.get("refer")
                 guests = reservation.get("guests", [])
@@ -776,7 +782,6 @@ class RoomBookingController(http.Controller):
             return Response(json.dumps(response_data_list), content_type='application/json', status=200)
         else:
             print("Errore nella richiesta API:", response.status_code)
-            # In caso di errore, puoi restituire una risposta di errore appropriata
             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
 
 

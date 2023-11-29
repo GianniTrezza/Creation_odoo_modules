@@ -322,3 +322,216 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 # # Gestione di altri tipi di richieste o situazioni di errore
 # # ...
 
+# CONFRONTO TRA CODICI
+# @http.route('/api/import', cors='*', auth='public', methods=['GET'], csrf=False, website=False)
+#     def importazione(self, refresh_token=None, **post):
+
+#         access_token = get_access_token(refresh_token)
+
+#         if access_token:
+#             print(f"Token di accesso ottenuto con successo: {access_token}")
+#         else:
+#             print("Errore nell'ottenere il token di accesso.")
+
+#         url = "https://api.octorate.com/connect/rest/v1/reservation/872964?type=CHECKIN&startDate=2023-12-01"
+
+#         # Header della richiesta con il token di autenticazione
+#         headers = {
+#             'accept': 'application/json',
+#             'Authorization': f'Bearer {access_token}'
+#         }
+
+#         # Esegui la richiesta GET all'API
+#         response = requests.get(url, headers=headers)
+
+#         # Verifica se la richiesta ha avuto successo
+#         if response.status_code == 200:
+#             # Parsa la risposta JSON
+#             data = response.json()
+
+#             response_data_list = []
+
+#             # Estrai le prenotazioni dalla lista "data" e cicla su di esse
+#             for reservation in data.get("data", []):
+#                 refer = reservation.get("refer")
+#                 guests = reservation.get("guests", [])
+#                 for guest in guests:
+#                     # Ora puoi accedere ai campi dell'oggetto guest direttamente
+#                     email = guest.get("email")
+#                     familyName = guest.get("familyName")
+#                     givenName = guest.get("givenName")
+#                     phone = guest.get("phone")
+#                     city = guest.get("city")
+#                     nome_completo = str(givenName) + " " + str(familyName)
+#                 pmsProduct = reservation.get("pmsProduct")
+#                 totalGross = reservation.get("totalGross")
+#                 channelName = reservation.get("channelName")
+#                 paymentStatus = reservation.get("paymentStatus")
+#                 paymentType = reservation.get("paymentType")
+#                 roomGross = reservation.get("roomGross")
+#                 totalGuest = reservation.get("totalGuest")
+#                 checkin = reservation.get("checkin")
+#                 checkout = reservation.get("checkout")
+#                 createTime = reservation.get("createTime")
+#                 channelNotes = reservation.get("channelNotes")
+#                 roomName = reservation.get("roomName")
+
+#                 checkin_date = fields.Date.from_string(checkin)
+#                 checkout_date = fields.Date.from_string(checkout)
+#                 data_creazione_mod = fields.Date.from_string(createTime)
+#                 delta = checkout_date - checkin_date
+#                 n_notti = delta.days
+#                 quantity_soggiorno = totalGuest * n_notti
+
+
+#                 # gestione della tipologia della camera
+#                 # gestione della tipologia della camera
+#                 pms_product_id = reservation.get("pmsProduct")
+#                 dettagli_camera = fetch_room_cleaning_details(pms_product_id, refresh_token)
+#                 stato_camera = dettagli_camera.get("clean")
+#                 tipologia_camera = dettagli_camera.get("name")
+#                 ultima_pulizia = dettagli_camera.get("lastCleaningDate")
+
+
+
+
+#                 # Puoi fare ulteriori operazioni con i dati estratti per ogni prenotazione
+#                 # Ad esempio, stampare i dati
+#                 response_data = {
+#                     "riferimento": refer,
+#                     "speriamo romm groos": roomGross,
+#                     "totalGuest": totalGuest,
+#                     "checkin": checkin,
+#                     "checkout": checkout,
+#                     "createTime": createTime,
+#                     "channelNotes": channelNotes,
+#                     "email": email,
+#                     "Nome Utente": nome_completo,
+#                     "phone": phone,
+#                     "city": city,
+#                     "id comera": pmsProduct,
+#                     "costo totale": totalGross,
+#                     "Canale di prenotazione" : channelName,
+#                     "Stato del pagamento": paymentStatus,
+#                     "Tipo di pagamento": paymentType,
+#                     "Nome stanza":  roomName,
+#                     "Ultima pulizia": ultima_pulizia,
+#                     "Tipologia camera": tipologia_camera,
+#                     "Stato camera": stato_camera
+#                 }
+
+#                 response_data_list.append(response_data)
+
+
+#                 team_vendite = request.env['crm.team'].sudo().search([('name', '=', channelName)], limit=1)
+#                 if not team_vendite:
+#                     team_vendite = request.env['crm.team'].sudo().create({'name': channelName})
+
+#                 # Creazione della fattura
+#                 room_booking_obj = []  # Inizializza la variabile come False
+#                 customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+#                 customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+#                 room_product = request.env['product.product'].sudo().search([('name', '=', roomName)], limit=1)
+#                 if not room_product:
+#                     room_product = request.env['product.product'].sudo().create({'name': roomName})
+#                 tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa soggiorno")], limit=1)
+
+
+#             # ********CONTROLLO/CREAZIONE DEL CONTATTO******
+#                 contact_bb = request.env['res.partner'].sudo().create({
+#                     'company_type': 'person',
+#                     'name': nome_completo,
+#                     'city': city,
+#                     'email': email,
+#                     'phone': phone
+#                 })
+
+#                 # stampa l'ID del contatto appena creato
+#                 contact_id = contact_bb.id
+#                 intero_contact = int(contact_id)
+#                 print("ID CONTATTO CREATO : ", intero_contact)
+
+#                 room_booking_obj = request.env['account.move'].sudo().create({
+#                     'state': 'draft',
+#                     'journal_id': customer_invoice_journal.id,
+#                     'refer': refer,
+#                     'move_type': 'out_invoice',
+#                     'checkin': checkin_date,
+#                     'checkout': checkout_date,
+#                     'totalGuest': totalGuest,
+#                     'rooms': n_notti,
+#                     'roomGross': roomGross,
+#                     'partner_id': intero_contact,  # Utilizza l'ID del contatto come partner_id
+#                     'invoice_date': checkin_date,
+#                     # 'ref': room_name,
+#                     'team_id': team_vendite.id,
+#                     'email_utente': email,
+#                     'telefono_utente': phone,
+#                     'nome_stanza_utente': roomName,
+#                     'nota_interna': channelNotes,
+#                     'stato_del_pagamento': paymentStatus,
+#                     'tipo_di_pagamento': paymentType,
+#                     'pulizia_camera': stato_camera,
+#                     'ultima_pulizia': ultima_pulizia,
+#                     'tipologia_camera': tipologia_camera,
+
+#                 })
+
+#                 # Creazione delle linee della fattura
+#                 linee_fattura = []
+
+#                 # Linea per il prodotto 1 (Pernotto)
+#                 linea_fattura_pernotto = {
+#                     'move_id': room_booking_obj.id,
+#                     'product_id': room_product.id,  # ID del prodotto 'Pernotto' nel portale amministrazione
+#                     'name': f"Prenotazione {refer} dal {checkin_date} al {checkout_date}",
+#                     'quantity': 1,
+#                     'price_unit': roomGross,
+#                     'account_id': customer_account.id
+#                 }
+#                 linee_fattura.append(linea_fattura_pernotto)
+
+#                 # Linea per il prodotto 2 (Tassa di Soggiorno)
+#                 linea_fattura_tassasoggiorno = {
+#                     'move_id': room_booking_obj.id,
+#                     'product_id': tassa_soggiorno.id,  # ID del prodotto 'Tassa di Soggiorno' nel portale amministrazione
+#                     'name': "Tassa di soggiorno",
+#                     'quantity': quantity_soggiorno,
+#                     'account_id': customer_account.id
+#                 }
+#                 linee_fattura.append(linea_fattura_tassasoggiorno)
+#                 for line in linee_fattura:
+#                     request.env['account.move.line'].sudo().create(line)
+
+#                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
+#                 room_booking_obj.message_post(
+#                     body=f"<p><b><font size='4' face='Arial'>Riepilogo dei dati:</font></b><br>"
+#                          f"Refer: {refer}<br>"
+#                          f"Prezzo totale: {roomGross}<br>"
+#                          f"Ospiti: {totalGuest}<br>"
+#                          f"Checkin: {checkin}<br>"
+#                          f"Checkout: {checkout}<br>"
+#                          f"Numero notti: {n_notti}<br>"
+#                          f"Quantity soggiorno: {quantity_soggiorno}<br>"
+#                          f"Prezzo unitario: {roomGross}<br>"
+#                          f"City utente: {city}<br>"
+#                          f"Email: {email}<br>"
+#                          f"Guests List: {nome_completo}<br>"
+#                          f"Telefono: {phone}<br>"
+#                          f"<span style='color:red; font-weight:bold;'>Note interne: {channelNotes}</span><br>"
+#                          f"Nome stanza: {roomName}<br>"
+#                          f"Nome camera: {tipologia_camera}<br>"
+#                          f"Pulizia camera:{stato_camera}<br>"
+#                          f"Ultima pulizia:{ultima_pulizia}<br>"
+#                          f"Piattaforma di prenotazione: {channelName}<br>"
+#                          f"Stato del pagamento: {paymentStatus} <br>"
+#                          f"Tipo di pagamento: {paymentType} </pr>",
+#                     message_type='comment'
+#                 )
+
+#             return Response(json.dumps(response_data_list), content_type='application/json', status=200)
+#         else:
+#             print("Errore nella richiesta API:", response.status_code)
+#             # In caso di errore, puoi restituire una risposta di errore appropriata
+#             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
+
