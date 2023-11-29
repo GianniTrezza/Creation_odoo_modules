@@ -20,24 +20,6 @@ except ImportError:
 CLIENT_ID = "public_a3a3b3c2278b4deabd9108e74c5e8af2"
 CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 
-#token di accesso
-# def get_access_token():
-#     endpoint = "https://api.octorate.com/connect/rest/v1/identity/apilogin"
-#     headers = {
-#         "Content-Type": "application/x-www-form-urlencoded"
-#     }
-#     payload = {
-#         "client_id": CLIENT_ID,
-#         "client_secret": CLIENT_SECRET
-#     }
-#     response = requests.post(endpoint, data=payload, headers=headers)
-#     if response.status_code == 200:
-#         return response.json().get("access_token")
-#     else:
-#         print(f"Errore nell'ottenere il token di accesso: {response.status_code} - {response.text}")
-#         return None
-#refresh token
-
 token_info = {
     "access_token": "6dded56e51594003a0d0ed1b4e0ec717TGAUGCTLWC",
     "expireDate": "2023-11-28T16:54:51.227Z[UTC]"
@@ -73,30 +55,6 @@ def refresh_access_token(refresh_token):
         _logger.error(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
         return None, None
 
-
-# def refresh_access_token(refresh_token):
-#     url = "https://api.octorate.com/connect/rest/v1/identity/refresh"
-#     data = {
-#         "client_id": CLIENT_ID,
-#         "client_secret": CLIENT_SECRET,
-#         "refresh_token": refresh_token
-#     }
-#     headers = {
-#         'Content-Type': 'application/x-www-form-urlencoded'
-#     }
-#     response = requests.post(url, data=urlencode(data), headers=headers)
-#     if response.status_code == 200:
-#         response_data = response.json()
-#         new_access_token = response_data.get("access_token")
-#         new_expire_date = response_data.get("expireDate")
-#         return new_access_token, new_expire_date
-#     else:
-#         _logger.error(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
-#         return None, None
-
-    # else:
-    #     print(f"Errore nella generazione del nuovo access token: {response.status_code} - {response.text}")
-    #     return None, None
 
 def get_access_token(refresh_token):
     global token_info
@@ -136,24 +94,8 @@ def fetch_room_cleaning_details(pms_product_id, refresh_token):
                     "cleaningDays": room.get("cleaningDays"),
                     "lastCleaningDate": room.get("lastCleaningDate")
                 }
-    # Restituisci un dizionario vuoto se non trovi una corrispondenza per l'ID.
     return {}
-    # elif response.status_code == 401:  # Token scaduto o non valido
-    #     new_access_token = refresh_access_token()  # Usa il tuo refresh token qui
-    #     if new_access_token:
-    #         return fetch_room_cleaning_details(pms_product_id, access_token)
-    #     else:
-    #         return None, None, None
-
-
-
-
-
-#_________________________________________
-
-
-
-# Funzione per creare le fatture
+    
 
 
 
@@ -216,16 +158,6 @@ class RoomBookingController(http.Controller):
 
             tipo = data_dict.get('type')
 
-            #gestione della tipologia della camera
-            # psm = content.get("pmsProduct")
-            # id_to_room_name = {
-            #     "599451": "Sky 001 Real Room",
-            #     "599455": "Los Angeles Apartment 101",
-            #     "612859": "quadrupla sepa"
-            #     # Aggiungi altre associazioni ID-nome qui secondo necessità
-            # }
-            # room_name = id_to_room_name.get(str(psm))
-            #piattaforma di prenotazione
             piattaforma = content.get("channelName")
 
             checkin_date = fields.Date.from_string(checkin_)
@@ -283,9 +215,7 @@ class RoomBookingController(http.Controller):
                 team_vendite = request.env['crm.team'].sudo().create({'name': piattaforma})
 
             # Creazione della fattura
-            room_booking_obj = []  # Inizializza la variabile come False
-            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            # account_id = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+            room_booking_obj = [] 
 
             customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
             account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
@@ -382,16 +312,7 @@ class RoomBookingController(http.Controller):
                     'price_unit': 3,
                     'account_id': account_id
                 }
-                # tourist_tax_line_values = {
-                #         'move_id': invoice_record.id,
-                #         'product_id': tassa_soggiorno_product.id,
-                #         'name': "Tassa di Soggiorno",
-                #         'quantity': reservation_data['totalGuest']*num_notti,
-                #         'price_unit': 2,
-                #         'account_id': account_id
-                #     }
-                    
-                # request.env['account.move.line'].sudo().create(tourist_tax_line_values)
+                
 
                 linee_fattura.append(linea_fattura_tassasoggiorno)
                 for line in linee_fattura:
@@ -400,34 +321,18 @@ class RoomBookingController(http.Controller):
                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
                 room_booking_obj.message_post(
                     body=f"<p><b><font size='4' face='Arial'>Riepilogo dei dati:</font></b><br>"
-                         #f"Refer: {refer_}<br>"
                          f"Prezzo totale: {roomGross_}<br>"
                          f"Ospiti totali: {totalGuest_}<br>"
                          f"Adulti: {totaleAdults}<br>"
                          f"Bambini: {totalChildren_}<br>"
                          f"Neonati: {totalInfants_}<br>"
-                         #f"Checkin: {checkin_}<br>"
-                         #f"Checkout: {checkout_}<br>"
-                         #f"Numero stanza: {numero_stanza_}<br>"
                          f"Numero notti: {n_notti}<br>"
-                         #f"Quantity soggiorno: {quantity_soggiorno}<br>"
-                         #f"Prezzo unitario: {prezzo_unitario_}<br>"
-                         #f"City utente: {city_}<br>"
                          f"Note interne: {note_interne_}<br>"
                          f"Stato del pagamento: {stato_pagamento} <br>"
                          f"Tipo di pagamento: {tipo_pagamento} <br>"
                          f"<p><b><font size='2' face='Arial'>Informazione cliente:</font></b><br>"
                          f"Email: {email_}<br>"
-                         #f"Guests List: {guestsList_}<br>"
                          f"Telefono: {phone_}</pr>",
-                         #f"Indirizzo: {address_}<br>"
-                         #f"Nome stanza: {nome_stanza}<br>"
-                         #f"Nome camera: {tipologia_camera}<br>"
-                         #f"Pulizia camera:{stato_camera}<br>"
-                         #f"Ultima pulizia:{ultima_pulizia}<br>"
-                         #f"Piattaforma di prenotazione: {piattaforma}<br>"
-                         #f"Check in effettuato: {effettivo_Checkin} <br>"
-                         #f"Check out effettuato: {effettivo_Checkout} <br>"
                     message_type='comment'
                 )
 
@@ -452,9 +357,7 @@ class RoomBookingController(http.Controller):
                         'checkout': checkout_,
                         'totalGuest': totalGuest_,
                         'roomGross': roomGross_,
-                        'invoice_date': checkin_date,  # DOMANDA:  DEVO AGGIUNGERE LA DATA DI MODIFICA?
-                        # 'partner_id': intero_contact  # Utilizza l'ID del contatto come partner_id
-                        #'ref': room_name,
+                        'invoice_date': checkin_date,  
                         'team_id': team_vendite.id,
                         'email_utente': email_,
                         'telefono_utente': phone_,
@@ -473,9 +376,7 @@ class RoomBookingController(http.Controller):
 
                     })
                     existing_contact = request.env['res.partner'].sudo().search([('id', '=', existing_invoice.partner_id.id)], limit=1)
-                    # if existing_contact and existing_contact.name != guestsList_:
-                    #     existing_contact.write({'name': guestsList_,
-                    #                             'phone': phone_})
+                    
                     if existing_contact:
                         update_vals = {}
                         if existing_contact.name != guestsList_:
@@ -508,11 +409,6 @@ class RoomBookingController(http.Controller):
                 room_booking_obj = existing_invoice
 
 
-
-
-
-
-            # ************************************************************************
 
 
             elif tipo == 'RESERVATION_CANCELLED':
@@ -679,19 +575,21 @@ class RoomBookingController(http.Controller):
                 if not tassa_soggiorno:
                     tassa_soggiorno = request.env['product.product'].sudo().create('name', '=', "Tassa di Soggiorno")
                     
-            existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
+                existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
 
-            if existing_contact:
-                contact_id = existing_contact.id
-            else:
-                contact_bb = request.env['res.partner'].sudo().create({
-                    'company_type': 'person',
-                    'name': nome_completo,
-                    'city': city,
-                    'email': email,
-                    'phone': phone
-                })
-                contact_id = contact_bb.id
+                if existing_contact:
+                    _logger.info(f"Il contatto esiste già per l'email {email}")
+                    contact_id = existing_contact.id
+                else:
+                    _logger.info(f"Creazione di un nuovo contatto per l'email {email}")
+                    contact_bb = request.env['res.partner'].sudo().create({
+                        'company_type': 'person',
+                        'name': nome_completo,
+                        'city': city,
+                        'email': email,
+                        'phone': phone
+                    })
+                    contact_id = contact_bb.id
 
                 # contact_id = contact_bb.id
                 intero_contact = int(contact_id)
@@ -758,24 +656,14 @@ class RoomBookingController(http.Controller):
                          f"Adulti: {totaleadulti}<br>"
                          f"Bambini: {totalChildren}<br>"
                          f"Neonati: {totalInfants}<br>"
-                         #f"Checkin: {checkin}<br>"
-                         #f"Checkout: {checkout}<br>"
                          f"Numero notti: {n_notti}<br>"
                          f"Nome camera: {tipologia_camera}<br>"
                          f"Note interne: {channelNotes}<br>"
                          f"Stato del pagamento: {paymentStatus} <br>"
                          f"Tipo di pagamento: {paymentType} <br>"                         
-                         #f"Quantity soggiorno: {quantity_soggiorno}<br>"
-                         #f"Prezzo unitario: {roomGross}<br>"
-                         #f"City utente: {city}<br>"
                          f"<p><b><font size='2' face='Arial'>Informazioni cliente</font></b><br>"
                          f"Email: {email}<br>"
-                         #f"Guests List: {nome_completo}<br>"
                          f"Telefono: {phone}</pr>",
-                         #f"Nome stanza: {roomName}<br>"
-                         #f"Pulizia camera:{stato_camera}<br>"
-                         #f"Ultima pulizia:{ultima_pulizia}<br>"
-                         #f"Piattaforma di prenotazione: {channelName}<br>"
                     message_type='comment'
                 )
 
@@ -784,20 +672,6 @@ class RoomBookingController(http.Controller):
             print("Errore nella richiesta API:", response.status_code)
             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
 
-
-
-
-
-
-# CREDENZIALI ISTANZA DI TEST (OCTORATE)
-# token_info = {
-#     "access_token": "3fd17ffe421b44e7b70165d1c0cc89f8OFCURPETLT",
-#     "expireDate": "2023-11-24T20:58:52.435Z[UTC]"
-# }
-# refresh_token = "2acf003360ea4ebca6871b5d7e56efe2"
-
-
-# NEW CODE
 
 
 
