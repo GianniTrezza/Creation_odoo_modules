@@ -320,7 +320,3 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 #     # ...
 
 # # Gestione di altri tipi di richieste o situazioni di errore
-# # ...
-
-
-
