@@ -224,7 +224,8 @@ class RoomBookingController(http.Controller):
             customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
             customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
 
-            print(f"Il customer account è", customer_account)
+            # print(f"Il customer account è", customer_account)
+
             room_product = request.env['product.product'].sudo().search([('name', '=', nome_stanza)], limit=1)
             if not room_product:
                 room_product = request.env['product.product'].sudo().create({'name': nome_stanza})
@@ -267,6 +268,7 @@ class RoomBookingController(http.Controller):
                     'journal_id': customer_invoice_journal.id,
                     'refer': refer_,
                     'move_type': 'out_invoice',
+                    'nome_utente': guestsList_,
                     'checkin': checkin_,
                     'checkout': checkout_,
                     'totalGuest': totalGuest_,
@@ -360,6 +362,7 @@ class RoomBookingController(http.Controller):
                         'move_type': 'out_invoice',
                         'checkin': checkin_,
                         'checkout': checkout_,
+                        'nome_utente': guestsList_,
                         'totalGuest': totalGuest_,
                         'roomGross': roomGross_,
                         'invoice_date': checkin_date,  
@@ -388,6 +391,8 @@ class RoomBookingController(http.Controller):
                             update_vals['name'] = guestsList_
                         if phone_ and existing_contact.phone != phone_:
                             update_vals['phone'] = phone_
+                        if email_ and existing_contact.email != email_:
+                            update_vals['email'] = email_
 
                         if update_vals:
                             existing_contact.write(update_vals)
@@ -605,6 +610,7 @@ class RoomBookingController(http.Controller):
                     'journal_id': customer_invoice_journal.id,
                     'refer': refer,
                     'move_type': 'out_invoice',
+                    'nome_utente': nome_completo,
                     'checkin': checkin_date,
                     'checkout': checkout_date,
                     'totalGuest': totalGuest,
@@ -680,7 +686,6 @@ class RoomBookingController(http.Controller):
         else:
             print("Errore nella richiesta API:", response.status_code)
             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
-
 
 
 

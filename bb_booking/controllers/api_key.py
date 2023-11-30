@@ -320,3 +320,141 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 #     # ...
 
 # # Gestione di altri tipi di richieste o situazioni di errore
+# @http.route('/api/import', cors='*', auth='public', methods=['GET'], csrf=False, website=False)
+# def importazione(self, refresh_token=None, **post):
+#     # ... codice precedente ...
+
+#     fatture_per_cliente = {}  # Dizionario per tenere traccia delle fatture per ogni cliente
+
+#     for reservation in data.get("data", []):
+#         # ... estrazione dati dalla prenotazione ...
+#         email_cliente = email  # Supponiamo che l'email identifichi univocamente il cliente
+
+#         # Verifica se il cliente ha già una fattura in sospeso
+#         if email_cliente not in fatture_per_cliente:
+#             existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_cliente)], limit=1)
+#             if not existing_contact:
+#                 # Crea un nuovo contatto se non esiste
+#                 contact_bb = request.env['res.partner'].sudo().create({
+#                     # ... dettagli del contatto ...
+#                 })
+#                 contact_id = contact_bb.id
+#             else:
+#                 contact_id = existing_contact.id
+
+#             # Crea una nuova fattura per questo cliente
+#             room_booking_obj = request.env['account.move'].sudo().create({
+#                 'partner_id': contact_id,
+#                 'state': 'draft',
+#                 'journal_id': customer_invoice_journal.id,
+#                 # ... altri dettagli della fattura ...
+#             })
+#             fatture_per_cliente[email_cliente] = room_booking_obj
+#         else:
+#             room_booking_obj = fatture_per_cliente[email_cliente]
+
+#         # Aggiungi una linea fattura per questa prenotazione
+#         request.env['account.move.line'].sudo().create({
+#             'move_id': room_booking_obj.id,
+#             # ... dettagli della linea fattura ...
+#         })
+
+#     # Posta tutte le fatture create
+#     for room_booking_obj in fatture_per_cliente.values():
+#         room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
+#         room_booking_obj.action_post()
+
+#     return Response(json.dumps(response_data_list), content_type='application/json', status=200)
+# ... [precedente codice per ottenere dati dalle prenotazioni] ...
+# ... [precedente codice per ottenere dati dalle prenotazioni] ...
+
+# ... [precedente codice per ottenere dati dalle prenotazioni] ...
+# DOPO 
+# fatture_per_cliente = {}  # Dizionario per tenere traccia delle fatture per ogni cliente
+
+# for reservation in data.get("data", []):
+#     # ... [estrazione dei dati dalla prenotazione] ...
+
+#     email_cliente = reservation.get("email")  # Identificatore unico del cliente
+
+#     # Ottieni o crea un contatto per il cliente
+#     existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_cliente)], limit=1)
+#     if not existing_contact:
+#         contact = request.env['res.partner'].sudo().create({
+#             # ... dettagli del contatto ...
+#         })
+#         contact_id = contact.id
+#     else:
+#         contact_id = existing_contact.id
+
+#     # Ottieni o crea una fattura per il cliente
+#     if email_cliente not in fatture_per_cliente:
+#         fattura = request.env['account.move'].sudo().create({
+#             'partner_id': contact_id,
+#             'state': 'draft',
+#             'journal_id': customer_invoice_journal.id,
+#             'invoice_date': fields.Date.context_today(self),
+#         })
+#         fatture_per_cliente[email_cliente] = fattura
+#     else:
+#         fattura = fatture_per_cliente[email_cliente]
+
+#     # Crea una linea fattura per la prenotazione
+#     fattura.write({
+#         'invoice_line_ids': [(0, 0, {
+#             'product_id': room_product.id,
+#             'name': f"Prenotazione {reservation.get('riferimento')}",
+#             'quantity': 1,
+#             'price_unit': reservation.get("costo totale"),
+#             'account_id': account_id,
+#         })]
+#     })
+
+# # Finalizza le fatture
+# for fattura in fatture_per_cliente.values():
+#     if not fattura.invoice_line_ids:
+#         _logger.error(f'Nessuna linea fattura trovata per la fattura {fattura.name}')
+#         continue
+#     fattura.action_post()
+
+# # Resto del codice...
+
+# ... [Codice precedente]
+# existing_contact = request.env['res.partner'].sudo().search([('id', '=', existing_invoice.partner_id.id)], limit=1)
+
+#         if existing_contact:
+#             previous_name = existing_contact.name
+#             new_name = guestsList_
+
+#             update_vals = {}
+#             name_changed = False
+#             if previous_name != new_name:
+#                 update_vals['name'] = new_name
+#                 name_changed = True
+
+#             if phone_ and existing_contact.phone != phone_:
+#                 update_vals['phone'] = phone_
+
+#             if update_vals:
+#                 existing_contact.write(update_vals)
+
+#             if name_changed:
+#                 # Posta un messaggio nel chatter per riflettere il cambiamento del nome
+#                 update_message = f"{previous_name} > {new_name} (Partner)"
+#                 existing_invoice.message_post(body=update_message, message_type='comment')
+
+#         # ... [Codice per aggiornare le linee di fattura]
+
+#     room_booking_obj = existing_invoice
+
+# # ... [Codice per RESERVATION_CANCELLED]
+
+# print("La fattura ha il seguente id ---------->", room_booking_obj.id)
+# if existing_contact:
+#                 # ... Il tuo codice esistente per gestire il cambiamento di nome
+#             else:
+#                 print("Nessun contatto trovato con l'ID fornito.")
+#         else:
+#             print("Nessun partner associato alla fattura.")
+#     else:
+#         print("Nessuna fattura trovata con il riferimento fornito.")
