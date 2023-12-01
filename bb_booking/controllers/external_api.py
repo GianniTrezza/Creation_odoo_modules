@@ -217,12 +217,12 @@ class RoomBookingController(http.Controller):
             # Creazione della fattura
             room_booking_obj = [] 
             # MIA ISTANZA
-            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            # account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
-            # print(f"Il customer account è", account_id)
-            # ISTANZA SIMONE
             customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+            account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
+            print(f"Il customer account è", account_id)
+            # ISTANZA SIMONE
+            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+            # customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
 
             # print(f"Il customer account è", customer_account)
 
@@ -306,7 +306,8 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer_} dal {checkin_} al {checkout_}",
                     'quantity': 1,
                     'price_unit': roomGross_,
-                    'account_id': customer_account.id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
 
@@ -317,7 +318,8 @@ class RoomBookingController(http.Controller):
                     'name': "Tassa di soggiorno",
                     'quantity': quantity_soggiorno,
                     'price_unit': 3,
-                    'account_id': customer_account.id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 
 
@@ -343,11 +345,8 @@ class RoomBookingController(http.Controller):
                     message_type='comment'
                 )
 
-
-            # *************************************************************************************
             elif tipo == 'RESERVATION_CHANGE':
-                
-    # Cerca la fattura esistente con il riferimento fornito
+
                 existing_invoice = request.env['account.move'].sudo().search([
                     ('refer', '=', refer_),
                     ('move_type', '=', 'out_invoice')
@@ -485,6 +484,7 @@ class RoomBookingController(http.Controller):
             # Parsa la risposta JSON
             data = response.json()
             _logger.info(f"Dati ricevuti dall'API: {data}")
+            print(f"I dati di prenotazione raccolti dall'istanza di produzione di Octorate sono i seguenti:", data)
 
 
             response_data_list = []
@@ -499,7 +499,26 @@ class RoomBookingController(http.Controller):
                     givenName = guest.get("givenName")
                     phone = guest.get("phone")
                     city = guest.get("city")
+                    # Assegnazione condizionale dei campi
+                    client_address = guest.get("address", "Indirizzo non disponibile")
+                    client_country = guest.get("nationality", "Nazione non disponibile")
+                    client_zip = guest.get("zip", "CAP non disponibile")
+                    client_city = guest.get("city", "Città non disponibile")
                     nome_completo = str(givenName) + " " + str(familyName)
+                    # MI SONO ROTTO I COGLIONI (INIZIO)
+                    # if client_country != "Nazione non disponibile":
+                    #     country = request.env['res.country'].search([('code', '=', client_country)], limit=1)
+                    #     if country:
+                    #         contact_id = existing_contact.id if existing_contact else contact_bb.id
+                    #         request.env['res.partner'].browse(contact_id).write({'country_id': country.id})
+
+                    # Stampa per debug
+                    # print(f"Dati di {nome_completo}: Indirizzo - {client_address}, Città - {client_city}, CAP - {client_zip}, Nazione - {client_country}")
+                    # Assegnazione condizionale dei campi
+                
+
+
+                    
                 pmsProduct = reservation.get("pmsProduct")
                 totalGross = reservation.get("totalGross")
                 channelName = reservation.get("channelName")
@@ -522,21 +541,14 @@ class RoomBookingController(http.Controller):
                 delta = checkout_date - checkin_date
                 n_notti = delta.days
                 quantity_soggiorno = totaleadulti * n_notti
-
-
-                # gestione della tipologia della camera
-                # gestione della tipologia della camera
                 pms_product_id = reservation.get("pmsProduct")
                 dettagli_camera = fetch_room_cleaning_details(pms_product_id, refresh_token)
                 stato_camera = dettagli_camera.get("clean")
                 tipologia_camera = dettagli_camera.get("name")
                 ultima_pulizia = dettagli_camera.get("lastCleaningDate")
+                
+                # print(f"Le prenotazioni prelevate dall'istanza di produzione sono:", reservation)
 
-
-
-
-                # Puoi fare ulteriori operazioni con i dati estratti per ogni prenotazione
-                # Ad esempio, stampare i dati
                 response_data = {
                     "riferimento": refer,
                     "speriamo romm groos": roomGross,
@@ -560,11 +572,15 @@ class RoomBookingController(http.Controller):
                     "Stato camera": stato_camera,
                     "totale adulti": totaleadulti,
                     "totale bambini": totalChildren,
-                    "totale neonati": totalInfants
+                    "totale neonati": totalInfants,
+                    "indirizzo": client_address,
+                    "nazione": client_country,
+                    "cap": client_zip,
+                    "città": client_city,
                 }
 
                 response_data_list.append(response_data)
-
+                # print(f"I dati di prenotazione raccolti sono i seguenti:", response_data_list)
 
                 team_vendite = request.env['crm.team'].sudo().search([('name', '=', channelName)], limit=1)
                 if not team_vendite:
@@ -573,11 +589,11 @@ class RoomBookingController(http.Controller):
                 # Creazione della fattura
                 room_booking_obj = []  # Inizializza la variabile come False
                 # Istanza Simone
-                customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-                customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
-                # Istanza mia
                 # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-                # account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
+                # customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+                # Istanza mia
+                customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+                account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
                 room_product = request.env['product.product'].sudo().search([('name', '=', roomName)], limit=1)
                 if not room_product:
                     room_product = request.env['product.product'].sudo().create({'name': roomName})
@@ -588,7 +604,15 @@ class RoomBookingController(http.Controller):
                 existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
 
                 if existing_contact:
+                    existing_contact.write({
+                        "street": client_address,
+                        "country_id": client_country,
+                        "zip": client_zip,
+                        "city": client_city,
+                    })
+
                     _logger.info(f"Il contatto esiste già per l'email {email}")
+                    print(f"Dati di {nome_completo}: Indirizzo - {client_address}, Città - {client_city}, CAP - {client_zip}, Nazione - {client_country}")
                     contact_id = existing_contact.id
                 else:
                     _logger.info(f"Creazione di un nuovo contatto per l'email {email}")
@@ -597,8 +621,11 @@ class RoomBookingController(http.Controller):
                         'name': nome_completo,
                         'city': city,
                         'email': email,
-                        'phone': phone
-                    })
+                        'phone': phone,
+                        'street': client_address,
+                        'country_id': client_country,
+                        'zip': client_zip,
+                        })
                     contact_id = contact_bb.id
 
                 # contact_id = contact_bb.id
@@ -632,7 +659,10 @@ class RoomBookingController(http.Controller):
                     'pulizia_camera': stato_camera,
                     'ultima_pulizia': ultima_pulizia,
                     'tipologia_camera': tipologia_camera,
-
+                    'indirizzo_utente': client_address,
+                    'nazione_utente': client_country,
+                    'cap_utente': client_zip,
+                    'citta_utente': client_city,
                 })
 
                 # Creazione delle linee della fattura
@@ -644,7 +674,8 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer} dal {checkin_date} al {checkout_date}",
                     'quantity': 1,
                     'price_unit': roomGross,
-                    'account_id': customer_account.id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
                 
@@ -656,11 +687,13 @@ class RoomBookingController(http.Controller):
                     'name': "Tassa di soggiorno",
                     'quantity': quantity_soggiorno,
                     'price_unit': 3,
-                    'account_id': customer_account.id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_tassasoggiorno)
                 for line in linee_fattura:
                     request.env['account.move.line'].sudo().create(line)
+                
 
                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
                 room_booking_obj.message_post(
@@ -678,7 +711,11 @@ class RoomBookingController(http.Controller):
                          f"Tipo di pagamento: {paymentType} <br>"                         
                          f"<p><b><font size='2' face='Arial'>Informazioni cliente</font></b><br>"
                          f"Email: {email}<br>"
-                         f"Telefono: {phone}</pr>",
+                         f"Telefono: {phone}<br>"
+                         f"Indirizzo cliente: {client_address}<br>"
+                         f"Città provenienza: {client_city}<br>"
+                         f"Nazione provenienza: {client_country}<br>"
+                         f"CAP: {client_zip}</pr>",
                     message_type='comment'
                 )
 

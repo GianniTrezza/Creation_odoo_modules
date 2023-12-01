@@ -33,6 +33,12 @@ class roombooking(models.Model):
     ultima_pulizia = fields.Char(string="Ultima pulizia", tracking=True)
     tipologia_camera = fields.Char(string='Tipologia Camera', tracking=True)
     nome_utente= fields.Char(string="Nome utente", tracking=True)
+    indirizzo_utente = fields.Char(string="Indirizzo Utente", tracking=True)
+    nazione_utente = fields.Char(string="Nazione Utente", tracking=True)
+    cap_utente = fields.Char(string='CAP Utente', tracking=True)
+    citta_utente= fields.Char(string="Città utente", tracking=True)
+
+    
 
 
 
