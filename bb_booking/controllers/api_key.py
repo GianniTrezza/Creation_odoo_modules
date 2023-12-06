@@ -369,4 +369,28 @@ CLIENT_SECRET = "secret_47ff49e5533047a994869a012a94eecfTOIUDRGXYK"
 # ... [precedente codice per ottenere dati dalle prenotazioni] ...
 
 # ... [precedente codice per ottenere dati dalle prenotazioni] ...
+# COME RISOLVERE LO SCIARMO DELLA NAZIONE
+# if client_country != "Nazione non disponibile":
+#     country_id = self.get_country_id_from_code(client_country)
+#     if country_id:
+#         existing_contact = request.env['res.partner'].search([('email', '=', email)], limit=1)
+#         if existing_contact:
+#             existing_contact.write({'country_id': country_id})
+#         else:
+#             contact_bb = request.env['res.partner'].create({
+#                 'company_type': 'person',
+#                 'name': nome_completo,
+#                 'city': city,
+#                 'email': email,
+#                 'phone': phone,
+#                 'street': client_address,
+#                 'country_id': country_id,
+#                 'zip': client_zip,
+#             })
+#             contact_id = contact_bb.id
+#     else:
+#         _logger.warning(f"Nazione non trovata per il codice: {client_country}")
 
+# def get_country_id_from_code(self, country_code):
+#         country = request.env['res.country'].search([('code', '=', country_code)], limit=1)
+#         return country.id if country else None
