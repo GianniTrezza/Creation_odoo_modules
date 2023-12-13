@@ -147,10 +147,61 @@ class RoomBookingController(http.Controller):
             guests = content.get("guests")
             checkin_ = guests[0].get("checkin")
             checkout_ = guests[0].get("checkout")
-            city_ = guests[0].get("city")
+            city_ = guests[0].get("city", "Città non disponibile")
             email_ = guests[0].get("email")
             phone_ = guests[0].get("phone")
-            address_ = guests[0].get("address")
+            address_ = guests[0].get("address", "Indirizzo non disponibile")
+            client_country= guests[0].get("nationality", "Nazione non disponibile")
+            client_zip = guests[0].get("zip", "CAP non disponibile")
+            # nome_completo = str(givenName) + " " + str(familyName)
+            country_id = self.get_country_id_from_code(client_country) if client_country != "Nazione non disponibile" else None
+            existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_)], limit=1)
+
+            if existing_contact:
+                existing_contact.write({'country_id': country_id})
+            else:
+                contact_bb = request.env['res.partner'].sudo().create({
+                    'company_type': 'person',
+                    'name': guestsList_,
+                    'city': city_,
+                    'email': email_,
+                    'phone': phone_,
+                    'street': address_,
+                    'country_id': country_id,
+                    'zip': client_zip,
+                })
+                contact_id = contact_bb.id
+        # else:
+        #  _logger.warning(f"Nazione non trovata per il codice: {client_country}")
+            # if client_country != "Nazione non disponibile":
+            #     country_id = self.get_country_id_from_code(client_country)
+            #     # country_id = self.get_country_id_from_code(client_country) if client_country != "Nazione non disponibile" else None
+
+            #     if country_id:
+            #         existing_contact = request.env['res.partner'].sudo().search([('email', '=', email_)], limit=1)
+            #         if existing_contact:
+            #             existing_contact.write({'country_id': country_id})
+            #         else:
+            #             contact_bb = request.env['res.partner'].sudo().create({
+            #                 'company_type': 'person',
+            #                 'name': guestsList_,
+            #                 'street': address_,
+            #                 'city': city_,
+            #                 'email': email_,
+            #                 'phone': phone_,
+            #                 'country_id': client_country,
+            #                 'zip': client_zip,
+            #             })
+            #             contact_id = contact_bb.id
+            #     else:
+            #         _logger.warning(f"Nazione non trovata per il codice: {client_country}")
+
+            # client_address = guest.get("address", "Indirizzo non disponibile")
+            # client_country = guest.get("nationality", "Nazione non disponibile")
+            # client_zip = guest.get("zip", "CAP non disponibile")
+            
+            # 'country_id': client_country,
+            #             'zip': client_zip,
             effettivo_Checkin = content.get("effectiveCheckin")
             effettivo_Checkout = content.get("effectiveCheckout")
             tipo_pagamento = content.get("paymentType")
@@ -192,6 +243,8 @@ class RoomBookingController(http.Controller):
                 "guestsList": guestsList_,
                 "telefono": phone_,
                 "indirizzo": address_,
+                "CAP": client_zip,
+                "Nazione": client_country,
                 "tipo": tipo,
                 "nome stanza" : nome_stanza,
                 "creazione fattura" : data_creazione_,
@@ -217,14 +270,14 @@ class RoomBookingController(http.Controller):
             # Creazione della fattura
             room_booking_obj = [] 
             # MIA ISTANZA
-            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            # account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
-            # print(f"Il customer account è", account_id)
-            # ISTANZA SIMONE
             customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-            customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+            account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
+            print(f"Il customer account è", account_id)
+            # ISTANZA SIMONE
+            # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+            # customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
 
-            print(f"Il customer account è", customer_account)
+            # print(f"Il customer account è", customer_account)
 
             room_product = request.env['product.product'].sudo().search([('name', '=', nome_stanza)], limit=1)
             if not room_product:
@@ -242,7 +295,9 @@ class RoomBookingController(http.Controller):
                         'name': guestsList_,
                         'street': address_,
                         'city': city_,
-                        'phone': phone_
+                        'phone': phone_,
+                        'country_id': client_country,
+                        'zip': client_zip,
                     })
                     contact_id = existing_contact.id
                 else:
@@ -252,8 +307,11 @@ class RoomBookingController(http.Controller):
                         'street': address_,
                         'city': city_,
                         'email': email_,
-                        'phone': phone_
+                        'phone': phone_,
+                        'country_id': client_country,
+                        'zip': client_zip,
                     })
+
                     contact_id = contact_bb.id
 
                 # stampa l'ID del contatto appena creato
@@ -277,9 +335,12 @@ class RoomBookingController(http.Controller):
                     'partner_id': intero_contact,  # Utilizza l'ID del contatto come partner_id
                     'invoice_date': checkin_date,
                     #'ref': room_name,
-                    'team_id': team_vendite.id,
+                    # 'team_id': team_vendite.id,
                     'email_utente': email_,
                     'telefono_utente': phone_,
+                    'citta_utente':city_,
+                    'nazione_utente':client_country,
+                    'cap_utente':client_zip,
                     'nome_stanza_utente': nome_stanza,
                     'nota_interna': note_interne_,
                     'checkin_effettuato': effettivo_Checkin,
@@ -306,8 +367,8 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer_} dal {checkin_} al {checkout_}",
                     'quantity': 1,
                     'price_unit': roomGross_,
-                    'account_id': customer_account.id,
-                    # 'account_id': account_id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
 
@@ -319,7 +380,7 @@ class RoomBookingController(http.Controller):
                     'quantity': quantity_soggiorno,
                     'price_unit': 3,
                     # 'account_id': customer_account.id,
-                    # 'account_id': account_id
+                    'account_id': account_id
                 }
                 
 
@@ -341,7 +402,10 @@ class RoomBookingController(http.Controller):
                          f"Tipo di pagamento: {tipo_pagamento} <br>"
                          f"<p><b><font size='2' face='Arial'>Informazione cliente:</font></b><br>"
                          f"Email: {email_}<br>"
-                         f"Telefono: {phone_}</pr>",
+                         f"Telefono: {phone_}<br>"
+                         f"Nazione: {client_country}<br>"
+                         f"Città: {city_}<br>"
+                         f"CAP: {client_zip}</pr>",
                     message_type='comment'
                 )
 
@@ -365,7 +429,7 @@ class RoomBookingController(http.Controller):
                         'totalGuest': totalGuest_,
                         'roomGross': roomGross_,
                         'invoice_date': checkin_date,  
-                        'team_id': team_vendite.id,
+                        # 'team_id': team_vendite.id,
                         'email_utente': email_,
                         'telefono_utente': phone_,
                         'nome_stanza_utente': nome_stanza,
@@ -504,30 +568,53 @@ class RoomBookingController(http.Controller):
                     client_address = guest.get("address", "Indirizzo non disponibile")
                     client_country = guest.get("nationality", "Nazione non disponibile")
                     client_zip = guest.get("zip", "CAP non disponibile")
+                    nome_completo = str(givenName) + " " + str(familyName)
+                    country_id = self.get_country_id_from_code(client_country) if client_country != "Nazione non disponibile" else None
+                    existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
+                
+                    if existing_contact:
+                        existing_contact.write({'country_id': country_id})
+                    else:
+                        contact_bb = request.env['res.partner'].sudo().create({
+                            'company_type': 'person',
+                            'name': nome_completo,
+                            'city': city,
+                            'email': email,
+                            'phone': phone,
+                            'street': client_address,
+                            'country_id': country_id,
+                            'zip': client_zip,
+                        })
+                        contact_id = contact_bb.id
+                else:
+                    _logger.warning(f"Nazione non trovata per il codice: {client_country}")
+# VECCHIO CODICE
                     # client_city = guest.get("city", "Città non disponibile")
-                    if client_country != "Nazione non disponibile":
-                        country_id = self.get_country_id_from_code(client_country)
-                        if country_id:
-                            existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
-                            if existing_contact:
-                                existing_contact.write({'country_id': country_id})
-                            else:
-                                contact_bb = request.env['res.partner'].sudo().create({
-                                    'company_type': 'person',
-                                    'name': nome_completo,
-                                    'city': city,
-                                    'email': email,
-                                    'phone': phone,
-                                    'street': client_address,
-                                    'country_id': country_id,
-                                    'zip': client_zip,
-                                })
-                                contact_id = contact_bb.id
-                        else:
-                            _logger.warning(f"Nazione non trovata per il codice: {client_country}")
+                    # if client_country != "Nazione non disponibile":
+                    #     # country_id = self.get_country_id_from_code(client_country)
+                    #     if country_id:
+                    #         existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
+                    #         if existing_contact:
+                    #             existing_contact.write({'country_id': country_id})
+                    #         else:
+                    #             contact_bb = request.env['res.partner'].sudo().create({
+                    #                 'company_type': 'person',
+                    #                 'name': nome_completo,
+                    #                 'city': city,
+                    #                 'email': email,
+                    #                 'phone': phone,
+                    #                 'street': client_address,
+                    #                 'country_id': country_id if country_id is not None else False,
+                    #                 'zip': client_zip,
+                    #             })
+                    #             contact_id = contact_bb.id
+                    #     else:
+                    #         _logger.warning(f"Nazione non trovata per il codice: {client_country}")
+                    # else:
+                    #     country_id = None
                     
 
-                    nome_completo = str(givenName) + " " + str(familyName)
+                    
 # VECCHIO CODICE
                     # if client_country != "Nazione non disponibile":
                     #     country = request.env['res.country'].sudo().search([('code', '=', client_country)], limit=1)
@@ -606,17 +693,19 @@ class RoomBookingController(http.Controller):
                 # Creazione della fattura
                 room_booking_obj = []  # Inizializza la variabile come False
                 # Istanza Simone
-                customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-                customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
-                # Istanza mia
                 # customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
-                # account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
+                # customer_account = request.env['account.account'].sudo().search([('name', '=', 'Merci c/vendite')], limit=1)
+                # Istanza mia
+                customer_invoice_journal = request.env['account.journal'].sudo().search([('type', '=', 'sale')], limit=1)
+                account_id = customer_invoice_journal.default_account_id.id if hasattr(customer_invoice_journal, 'default_account_id') else 44
                 room_product = request.env['product.product'].sudo().search([('name', '=', roomName)], limit=1)
                 if not room_product:
                     room_product = request.env['product.product'].sudo().create({'name': roomName})
                 tassa_soggiorno = request.env['product.product'].sudo().search([('name', '=', "Tassa di Soggiorno")], limit=1)
                 if not tassa_soggiorno:
-                    tassa_soggiorno = request.env['product.product'].sudo().create('name', '=', "Tassa di Soggiorno")
+                    # tassa_soggiorno = request.env['product.product'].sudo().create('name', '=', "Tassa di Soggiorno")
+                    tassa_soggiorno = request.env['product.product'].sudo().create({'name': "Tassa di Soggiorno"})
+
                     
                 existing_contact = request.env['res.partner'].sudo().search([('email', '=', email)], limit=1)
 
@@ -659,7 +748,7 @@ class RoomBookingController(http.Controller):
                     'partner_id': intero_contact,  # Utilizza l'ID del contatto come partner_id
                     'invoice_date': checkin_date,
                     # 'ref': room_name,
-                    'team_id': team_vendite.id,
+                    # 'team_id': team_vendite.id,
                     'email_utente': email,
                     'telefono_utente': phone,
                     'nome_stanza_utente': roomName,
@@ -685,8 +774,8 @@ class RoomBookingController(http.Controller):
                     'name': f"Prenotazione {refer} dal {checkin_date} al {checkout_date}",
                     'quantity': 1,
                     'price_unit': roomGross,
-                    'account_id': customer_account.id,
-                    # 'account_id': account_id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_pernotto)
                 
@@ -698,27 +787,13 @@ class RoomBookingController(http.Controller):
                     'name': "Tassa di soggiorno",
                     'quantity': quantity_soggiorno,
                     'price_unit': 3,
-                    'account_id': customer_account.id,
-                    # 'account_id': account_id
+                    # 'account_id': customer_account.id,
+                    'account_id': account_id
                 }
                 linee_fattura.append(linea_fattura_tassasoggiorno)
                 for line in linee_fattura:
                     request.env['account.move.line'].sudo().create(line)
 
-                # payment_data = {
-                #     'payment_type': 'inbound',
-                #     'partner_type': 'customer',
-                #     'partner_id': contact_id,
-                #     'amount': room_booking_obj.amount_total,
-                #     'currency_id': room_booking_obj.currency_id.id,
-                #     'payment_date': fields.Date.today(),
-                #     'journal_id': customer_invoice_journal.id,
-                #     'communication': room_booking_obj.name,
-                # }
-                # payment = request.env['account.payment'].sudo().create(payment_data)
-                # payment.post()
-
-                # room_booking_obj.action_post()
 
                 room_booking_obj.with_context(default_type='out_invoice').write({'state': 'draft'})
                 room_booking_obj.message_post(
@@ -749,10 +824,14 @@ class RoomBookingController(http.Controller):
             print("Errore nella richiesta API:", response.status_code)
             return Response("Errore nella richiesta API", content_type='text/plain', status=response.status_code)
     
+    # def get_country_id_from_code(self, country_code):
+    #     country = request.env['res.country'].sudo().search([('code', '=', country_code)], limit=1)
+    #     return country.id if country else None
     def get_country_id_from_code(self, country_code):
-        country = request.env['res.country'].sudo().search([('code', '=', country_code)], limit=1)
-        return country.id if country else None
-
-
+        if country_code and country_code != "Nazione non disponibile":
+            country = request.env['res.country'].sudo().search([('code', '=', country_code)], limit=1)
+            return country.id if country else None
+        else:
+            return None
 
 
