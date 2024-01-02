@@ -1,0 +1,58 @@
+<odoo>
+
+
+    <!-- azione -->
+    
+    <record id="sla_policy_action" model="ir.actions.act_window">
+        <field name="name">SLA Policy</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">sla.policy</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Nessuna SLA POLICY, creane una 
+            </p>
+        </field>
+    </record>
+
+   <!--  vista lista-->
+    <record id="sla_policy_tree" model="ir.ui.view">
+        <field name="name">Politica SLA</field>
+        <field name="model">sla.policy</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="type_policy"/>
+                <field name="description"/>
+                <field name="labels"/>
+                <field name="timing"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- vista form  -->
+    <record id="sla_policy_view" model="ir.ui.view">
+    <field name="name">Politica SLA form</field>
+    <field name="model">sla.policy</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="type_policy"/>
+                            <field name="description"/>
+                        </group>
+                        <group>
+                            <field name="labels"/>
+                            <div style="display: flex; align-items: center;">
+                                <field name="timing" style="margin-right: 20px;"/>
+                                <field name="unit" style="flex: 1; min-width: 0;"/>
+                            </div>
+
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,35 @@
+<odoo>
+
+    <record id="felds_contact" model="ir.ui.view">
+        <field name="name">fields_contact_views</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form//sheet//group//group[2]//field[@name='category_id']" position="after">
+                <!-- <field name="name"/> -->
+                <field name="type_contact"/>
+                <field name="enabled" invisible="type_contact != 'operatore'"/>
+                <field name="active_framework_agreement"
+                       invisible="type_contact == 'operatore' and not enabled"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="new_button_contact" model="ir.ui.view">
+        <field name="name">new_button_contact_v</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="calendar.view_partners_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='schedule_meeting']" position="before">
+                <button name="smartButton" type="object" string="Accordi Quadro"
+                        icon="fa-folder-open" class="oe_stat_button"
+                        invisible="type_contact == 'operatore' and not enabled or not type_contact">
+                    <span class="o_stat_text">Accordi Quadro : </span>
+                    <field class="o_stat_text" name="framework_agreement_count"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>

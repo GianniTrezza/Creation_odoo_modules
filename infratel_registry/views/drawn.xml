@@ -1,0 +1,71 @@
+<odoo>
+    <!-- Azione -->
+    <record id="drawn_action" model="ir.actions.act_window">
+        <field name="name">Tratte</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">plant.routes</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea una nuova Tratta
+            </p>
+        </field>
+    </record>
+
+    <!-- menu -->
+    <menuitem
+        id="crm_menu_drawn"
+        name="Tratte"
+        parent="crm.crm_menu_root"
+        action="drawn_action"
+        sequence="5"/>
+
+    <!-- vista lista -->
+
+    <record id="drawn_action_treee" model="ir.ui.view">
+        <field name="name">Tratte View</field>
+        <field name="model">plant.routes</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="code_drawn"/>
+                <field name="point_a"/>
+                <field name="point_b"/>
+                <field name="node_code"/>
+                <field name="route_length"/>
+                <field name="board"/>
+                <field name="from_street"/>
+                <field name="to_street"/>
+                <field name="note"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- vista form  -->
+    <record id="framework_agreement_views" model="ir.ui.view">
+    <field name="name">Tratte compilazione</field>
+    <field name="model">plant.routes</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="code_drawn"/>
+                            <field name="point_a"/>
+                            <field name="point_b"/>
+                            <field name="node_code"/>
+                            <field name="route_length"/>
+                            <field name="board"/>
+                            <field name="note"/>
+                        </group>
+                        <group>
+                            <field name="from_street"/>
+                            <field name="to_street"/>
+                            <field name="diametro_fibre"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

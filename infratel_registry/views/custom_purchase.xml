@@ -1,0 +1,42 @@
+<odoo>
+    <record id="custom_purchase_fields" model="ir.ui.view">
+        <field name="name">custom_purchase_fields_view</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+        
+            <!-- <xpath expr="//button[@name='action_rfq_send']" position="after">
+                    <button string="Validazione" name="validation" class="oe_highlight" type="object"/>
+                    <button string="Approvazione" name="approval" class="oe_highlight" type="object"/>
+                    <button string="Firma" name="signature" class="oe_highlight" type="object"/>
+                    <button string="Sospendi" name="suspend" class="oe_highlight" type="object"/>
+                    <button string="Riattiva" name="reactivate" class="oe_highlight" type="object"/>
+                    <button string="Crea nuovo ordine" name="new_order" class="oe_highlight" type="object"/>
+            </xpath> -->
+                         
+            <xpath expr="//field[@name='partner_ref']" position="after">
+                <field name="project"/>
+                <field name="order"/>
+                <field name="accordo_quadro"/>
+                <field name="cig"/>
+                <field name="cup"/>
+                <field name="request_type"/>
+                <field name="refer" domain="[('type_contact', '=', 'operatore')]"/>
+                <field name="email_purchase_custom"/>
+                <field name="email_pec_purchase_custom"/> 
+                <field name="phone_purchase_custom"/>
+            </xpath>
+            <xpath expr="//field[@name='date_order']" position="before">
+                <field name="deadline"/>
+                <field name="actual_delivery_date"/>
+                <field name="delivery_employee"/>
+                <field name="works_director"/>
+                <field name="execution_security_coordinator"/>
+                <field name="design_safety_coordinator"/>
+                <field name="joint_tesing"/>
+                <field name="maturity"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

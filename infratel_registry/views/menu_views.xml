@@ -1,0 +1,62 @@
+<odoo>
+
+    <!--Accordi quadro in acqusito -->
+    <menuitem 
+        id="framework_agreement_menu_purchase"
+        name="Accordi Quadro"
+        parent="purchase.menu_purchase_root"
+        action="framework_agreement_action"
+        sequence="5"/>
+    
+    <!-- Accordi quadro in vendite -->
+    <!-- <menuitem 
+        id="framework_agreement_menu_sale"
+        name="Accordi Quadro"
+        groups="sale.sale_menu_root"
+        sequence="5"/> -->
+
+    
+
+    <menuitem 
+        id="framework_agreement_menu_sale"
+        name="Accordi Quadro"
+        parent="sale.sale_menu_root"
+        action="framework_agreement_action"
+        sequence="15"/>
+    
+
+    <menuitem
+        id="crm_menu_custom"
+        name="Sezione Custom"
+        parent="crm.crm_menu_root"
+        sequence="5"/>
+    
+    <menuitem
+        id="crm_menu_project_request"
+        name="Progetti"
+        parent="crm_menu_custom"
+        action="project_request_action"
+        sequence="1"/>
+
+    <menuitem 
+        id="framework_agreement_menu"
+        name="Accordi quadro"
+        action="framework_agreement_action"
+        parent="crm_menu_custom"
+        sequence="2"/>
+    
+    <menuitem 
+        id="sla_policy_menu"
+        name="SLA Policy"
+        action="sla_policy_action"
+        parent="crm_menu_custom"
+        sequence="3"/>
+    <!-- <menuitem
+        id="sla_labels"
+        name="etichette"
+        action="sla_policy_label_action"
+        parent="crm_menu_custom"
+        sequence="4"/> -->
+
+
+</odoo>

@@ -1,0 +1,56 @@
+<odoo>
+    <!-- Azione -->
+    <record id="unit_measure_action" model="ir.actions.act_window">
+        <field name="name">Unità di misura</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">unit.measure</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aggiungi un'unità di misura
+            </p>
+        </field>
+    </record>
+
+    <!-- menu -->
+    <menuitem
+        id="crm_menu_unit_measure"
+        name="Unità di msiura"
+        parent="crm.crm_menu_root"
+        action="unit_measure_action"
+        sequence="5"/>
+
+    <!-- vista lista -->
+
+    <record id="drawn_action_tree" model="ir.ui.view">
+        <field name="name">Unità di misura</field>
+        <field name="model">unit.measure</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="unit_of_measure"/>
+                <field name="extended_unit_of_measure"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- vista form  -->
+    <record id="framework_agreement_view" model="ir.ui.view">
+    <field name="name">Unità di msiura</field>
+    <field name="model">unit.measure</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="unit_of_measure"/>
+                        </group>
+                        <group>
+                            <field name="extended_unit_of_measure"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

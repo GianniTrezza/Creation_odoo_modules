@@ -1,0 +1,17 @@
+<odoo>
+    <record id="custom_invoice_fields" model="ir.ui.view">
+        <field name="name">custom_invoice_fields_view</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <!-- <xpath expr="//button[@name='action_register_payment']" position="after">
+                <button string="Invia per trasmissione" name="trasmission" class="oe_highlight" type="object"/>
+                <button string="Invia a SAP" name="sap" class="oe_highlight" type="object"/>
+            </xpath> -->
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/field[@name='partner_id']" position="after">
+                <field name="quadrature_possible"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

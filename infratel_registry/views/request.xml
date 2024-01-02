@@ -1,0 +1,48 @@
+<odoo>
+
+    <record id="custom_crm_fields" model="ir.ui.view">
+        <field name="name">custom_crm_fields_view</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[@name='opportunity_partner']/field[@name='partner_id']"
+                   position="after">
+                <field name="region"/>
+                <field name="birthplace"/>
+                <field name="shop_assistant"/>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[@name='opportunity_partner']/div[1]" position="after">
+                <field name="pec"/>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[not(@name)][1]/field[@name='user_id']" position="before">
+                <!-- manca uan cosa relativa all'accordo quadro che è un campo Many2One-->
+                <field name="project"/>
+                <field name="cig"/>
+                <field name="cup"/>
+                <field name="type_request"/>
+                <field name="referent_cust"/>
+                <field name="associated_framework_agreements"/>
+
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[not(@name)][1]/div[1]" position="after">
+                <field name="joint_testing"/>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
+                <page string="CRM Lines" name="crm_lines">
+                    <field name="opportunity_lines" widget="one2many_list">
+                        <tree>
+                            <field name="code_deal"/>
+                            <field name="route_length"/>
+                            <field name="product_service"/>
+                            <field name="quantity"/>
+                            <field name="unit_of_measure"/>
+                            <!-- <field name="diameter"/> -->
+                            <field name="duration_iru"/>
+                        </tree> 
+                    </field>                                                    
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

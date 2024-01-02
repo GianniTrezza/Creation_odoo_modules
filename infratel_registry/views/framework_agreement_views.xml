@@ -1,0 +1,91 @@
+<odoo>
+
+    <record id="framework_agreement_action" model="ir.actions.act_window">
+        <field name="name">Accordi quadro</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">framework.agreements</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea un nuovo accordo quadro
+            </p>
+        </field>
+    </record>
+
+    <!-- menu -->
+    <!-- <menuitem id="framework_agreement_menu"
+              name="Accordi quadro"
+              action="framework_agreement_action"
+              sequence="1"/> -->
+
+    <!-- vista lista -->
+
+    <record id="framework_agreement_tre" model="ir.ui.view">
+        <field name="name">Accordi quadro</field>
+        <field name="model">framework.agreements</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="type_contract"/>
+                <field name="associated_contract"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="contract"/>
+                <field name="day_allert"/>
+                <field name="sla_policy"/>
+                <field name="infratel_protocol"/>
+                <field name="signing_date"/>
+                <field name="cig"/>
+                <field name="is_state_valid"/>
+                <field name="state_bar_custom" widget="badge"
+                decoration-success="state_bar_custom == 'valid'"
+                decoration-danger="state_bar_custom == 'not_valid'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="framework_agreements_view" model="ir.ui.view">
+    <field name="name">Accordi quadro form</field>
+    <field name="model">framework.agreements</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="state_bar_custom" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" required="True"/>
+                            <field name="associated_contract"/>
+                            <field name="type_contract"/>
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                        </group>
+                        <group>
+                            <field name="contract"/>
+                            <field name="day_allert"/>
+                            <field name="sla_policy" invisible="type_contract == 'operatore'"/>
+                            <field name="infratel_protocol"/>
+                            <field name="signing_date"/>
+                            <field name="cig"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Prodotti abilitati">
+                            <field name="products_lines" widget="one2many_list">
+                                <tree>
+                                    <field name="product_request"/>
+                                    <field name="price_request"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+
+
+</odoo>

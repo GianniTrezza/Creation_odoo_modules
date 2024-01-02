@@ -1,0 +1,43 @@
+<odoo>
+
+    <record id="sla_policy_label_action" model="ir.actions.act_window">
+        <field name="name">Action label SLA Policy</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">sla.label</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Nessuna Etichetta configurata, creane una 
+            </p>
+        </field>
+    </record>
+
+   <!--  vista lista-->
+    <record id="sla_label_tree" model="ir.ui.view">
+        <field name="name">Etichette</field>
+        <field name="model">sla.label</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- vista form  -->
+    <record id="sla_label_view" model="ir.ui.view">
+    <field name="name">Etichette form</field>
+    <field name="model">sla.label</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

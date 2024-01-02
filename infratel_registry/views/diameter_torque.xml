@@ -1,0 +1,53 @@
+<odoo>
+    <!-- Azione -->
+    <!-- <record id="diameter_torque_action" model="ir.actions.act_window">
+       <field name="name">Diametro/coppia</field>
+       <field name="type">ir.actions.act_window</field>
+        <field name="res_model">diameter.torque</field>
+       <field name="view_mode">tree,form</field>
+       <field name="help" type="html">
+           <p class="o_view_nocontent_smiling_face">
+               Nessun elemento
+           </p>
+       </field>
+   </record> -->
+
+    <!-- Menu -->
+
+    <!-- <menuitem
+        id="diameter_torque_action_menu"
+        name="Diametro-Coppia"
+        parent="crm.crm_menu_root"
+        action="diameter_torque_action"
+        sequence="8"/> -->
+
+    <!--  vista lista-->
+    <!-- <record id="diameter_tree" model="ir.ui.view">
+        <field name="name">Diametro/Coppia Vista</field>
+        <field name="model">diameter.torque</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="id"/>
+                <field name="name"/>
+                <field name="size"/>
+            </tree>
+        </field>
+    </record> -->
+
+    <!-- vista form  -->
+    <!-- <record id="diameter_view" model="ir.ui.view">
+    <field name="name">Diametro/Coppia Form</field>
+    <field name="model">diameter.torque</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="id"/>
+                        <field name="name"/>
+                        <field name="size"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record> -->
+</odoo>

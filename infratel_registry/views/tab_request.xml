@@ -1,0 +1,12 @@
+<odoo>
+    <record id="framework_agreement_tree" model="ir.ui.view">
+        <field name="name">tab prodotti</field>
+        <field name="model">tab.request</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="product_request"/>
+                <field name="price_request"/>
+            </tree>
+        </field>
+    </record>
+</odoo>

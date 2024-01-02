@@ -1,0 +1,18 @@
+<odoo>
+    <record id="view_purchase_order_line_form_custom" model="ir.ui.view">
+        <field name="name">purchase.order.line.form.custom</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/tree[1]/field[@name='product_id']" position="after">
+                <field name="tratta"/>
+                <field name="code_deal"/>
+                <field name="route_length"/>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/tree[1]/field[@name='product_id']" position="after">
+                <field name="unit_of_measure"/>
+                <!-- <field name="diameter"/> -->
+            </xpath>
+        </field>
+    </record>
+</odoo>

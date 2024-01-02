@@ -1,0 +1,83 @@
+<odoo>
+
+    <record id="custom_sale_fields" model="ir.ui.view">
+        <field name="name">custom_sales_fields_view</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+        <!-- <xpath expr="//button[@name='action_confirm']" position="after">
+            <button string="Genera ODA" name="generate_purchase_order" class="oe_highlight" type="object"/>
+        </xpath> -->
+
+
+            <xpath expr="//button[@name='action_confirm']" position="after">
+                <!-- <button string="Validazione" name="validation" class="oe_highlight" type="object"/>
+                <button string="Approvazione" name="approval" class="oe_highlight" type="object"/>
+                <button string="Firma" name="signature" class="oe_highlight" type="object"/>
+                <button string="Informazioni" name="information" class="oe_highlight" type="object"/> -->
+                <button string="Crea Ordine d'Acquisto" name="generate_purchase_order" class="oe_highlight" type="object"/>
+                
+                <!-- <button string="Rinnovo" name="renewal" class="oe_highlight" type="object"/>
+                <button string="Dismissione" name="divestment" class="oe_highlight" type="object"/> -->
+            </xpath>
+                         
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[@name='partner_details']/field[@name='partner_id']"
+                   position="after">
+                <field name="project_custom"/>
+                <field name="accordo_quadro"/>
+                <field name="order"/>
+                <field name="cig"/>
+                <field name="cup"/>
+                <field name="request_type"/>
+                <field name="refer" domain="[('type_contact', '=', 'operatore')]"/>
+                <field name="email_sales"/>
+                <field name="email_pec_sales"/> 
+                <field name="phone_sales"/>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[@name='order_details']/field[@name='payment_term_id']"
+                   position="after">
+                   <field name="joint_tesing"/> 
+                   <field name="maturity"/>
+                   <field name="business_developer"/>
+                   <field name="delivery_employee"/>
+                   <field name="quadrature_possible"/>
+
+            </xpath>     
+        </field>
+    </record>
+    <record id="view_fornitore_wizard_form" model="ir.ui.view">
+        <field name="name">fornitore.wizard.form</field>
+        <field name="model">fornitori.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="fornitore_id" options="{'no_create': True}"/>
+                    <field name="accordo_quadro_id" domain="[('associated_contract', '=', fornitore_id), ('is_state_valid', '=', True)]" options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button string="Conferma" class="btn-primary" type="object" name="conferma_selezione_accordo_quadro"/>
+                    <button string="Annulla" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- <record id="view_prodotti_lista_form" model="ir.ui.view">
+        <field name="name">prodotti.lista.form</field>
+        <field name="model">prodotti.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="product_ids" widget="many2many_tags"/>
+                </group>
+                <footer>
+                    <button string="Conferma" class="btn-primary" type="object" name="conferma_selezione_prodotti"/>
+                    <button string="Annulla" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record> -->
+
+
+</odoo>
